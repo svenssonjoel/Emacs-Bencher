@@ -87,14 +87,28 @@
   )
 
 
-(split-string (replace-regexp-in-string "[ ]+" "" "apa: bepa") ":")
+;; (split-string (replace-regexp-in-string "[ ]+" "" "apa: bepa") ":")
 
 
 (defun a (arg)
   "testing"
   (run-benchmarks (parse-benchmarks (read-lines "./test.txt"))))
 
-(read-lines "./test.txt")
 
+(defun all-selections (l)
+  "generate all possible selections of one element per list from list of list"
+  (if (not l) '(()) ; nothing to select from
+    (let* ((a (car l))
+	   (b (all-selections (cdr l))))
+      (let (fun)
+	(setf fun (lambda (l ls) (if (not l) ()
+				   (let ((a (car l))
+					 (b (cdr l)))
+				     (append (mapcar (lambda (x) (cons a x)) ls)
+					     (funcall fun b ls))))))
+      
+	(funcall fun a b)))))
 
-
+	
+	
+  
