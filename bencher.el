@@ -5,7 +5,15 @@
 (require 'cl)
 
 
+;; Benchmark struct
 (cl-defstruct benchmark name executable varying)
+
+;; CSV data container. Two lists, one for default columns
+;; and one for user specified data tags 
+(cl-defstruct csv-data default tags)
+
+;; Default csv header
+(defconst default-csv-header '("Name")) 
 
 (defun read-lines (filePath)
   "Return a list of lines of a file at filePath."
@@ -22,7 +30,20 @@
     (setq str (replace-match "" t t str)))
   str)
 
+(defun string-join (sl delim)
+  (mapconcat 'identity sl delim))
 
+(defun string-substitute (what with in)
+  (with-temp-buffer
+    (insert in)
+    (beginning-of-buffer)
+    (while (search-forward what nil t)
+      (replace-match with nil t))
+    (buffer-string)))
+
+
+;; TODO: Break up into small functions.
+;;       Just dispatch from here. 
 (defun parse-benchmark (bench l)
   "Parse a single benchmark until a line with %% is found"
   (if (not l)
@@ -32,6 +53,13 @@
 	  (let ((key (car ps))
 		(value (chomp (car (cdr ps))))) ; for simple cases 
 	    (cond ((string= key "name") (setf (benchmark-name bench) value))
+		  ((string= key "varying")
+		   (let* ((value-words (split-string value " "))
+			  (value-variable (car value-words))
+			  (value-body (string-join (cdr value-words) " ")))
+		     (setf (benchmark-varying bench)
+			   (cons (list value-variable value-body)
+				 (benchmark-varying bench)))))
 		  ((string= key "executable")
 		   (let ((tmp (split-string value " ")))
 		     (let ((exe-args (if (string-prefix-p "./" (car tmp))
@@ -66,12 +94,29 @@
       (insert "Running benchmark\n")
       (let ((default-directory work-dir))
 	(message "Running benchmark: %s" (benchmark-name bench))
-	(make-process  :name (benchmark-name bench)
-		       :command (benchmark-executable bench)
-		       :buffer (benchmark-name bench))
-	(set-buffer prev-buf))
+	(if (not (benchmark-varying bench))
+	    (make-process  :name (benchmark-name bench)
+			   :command (benchmark-executable bench)
+			   :buffer (benchmark-name bench))
+	  (let* ((varying-exps
+		  (mapcar (lambda (x) (car (read-from-string (car (cdr x)))))
+			  (benchmark-varying bench)))
+		 (varying-vars
+		  (mapcar 'car (benchmark-varying bench)))
+		 (varying-selections
+		  (all-selections varying-exps)))
+	    (dolist (elt varying-selections ())
+	      ;; TODO: Keep hacking here. 
+	      (let* ((exec-cmd-orig (benchmark-executable bench))
+		     (exec-cmd (mapcar (lambda (x) (string-substitute "%a" "10" x)) exec-cmd-orig)))
+		(make-process  :name (benchmark-name bench)
+			       :command exec-cmd
+			       :buffer (benchmark-name bench))))))
+	      
+	)
+      (set-buffer prev-buf)
       ))
-  )  
+  )
 
 (directory-files ".")
 
@@ -92,7 +137,11 @@
 
 (defun a (arg)
   "testing"
-  (run-benchmarks (parse-benchmarks (read-lines "./test.txt"))))
+  (run-benchmarks (parse-benchmarks (read-lines "./test.bench"))))
+
+(defun b (arg)
+  "testing"
+  (parse-benchmarks (read-lines "./test.bench")))
 
 
 (defun all-selections (l)
