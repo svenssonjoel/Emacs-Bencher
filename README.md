@@ -1,2 +1,2 @@
-# Emacs-Bencher
-USe Emacs to run benchmarks and collect data
+# Emacs-Bencher (Work in progress)
+Use Emacs to run benchmarks and collect data
