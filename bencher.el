@@ -21,6 +21,10 @@
     (insert-file-contents filePath)
     (split-string (buffer-string) "\n" t)))
 
+(defun insert-bm (str)
+  "Insert Emacs Bencher text into the benchmark output buffer"
+  (insert (concat "[EMACS BENCHER] " str)))
+
 
 ; From the web (https://www.emacswiki.org/emacs/ElispCookbook#toc6)
 (defun chomp (str)
@@ -85,22 +89,33 @@
     ())
   )
 
+
+
+(defun do-substitutions (strs vars values)
+  "Substitues variables from list vars with values from list values in list of strings"
+  (if (not vars) strs
+    (let* ((var (concat "%" (car vars)))
+	   (val (car values)))
+      (let ((strs-new (mapcar (lambda (x) (string-substitute var val x)) strs)))
+	(do-substitutions strs-new (cdr vars) (cdr values))))))
+ 
+
 (defun run-benchmark (bench)
   "Run a single benchmark"
   (let ((work-dir default-directory)
 	(prev-buf (current-buffer)))
     (let (( buf (get-buffer-create (benchmark-name bench))))
       (set-buffer buf)
-      (insert "Running benchmark\n")
+      ;(insert "Running benchmark\n")
       (let ((default-directory work-dir))
-	(message "Running benchmark: %s" (benchmark-name bench))
+	(insert-bm (format "Running benchmark: %s\n" (benchmark-name bench)))
 	(if (not (benchmark-varying bench))
 	    (make-process  :name (benchmark-name bench)
 			   :command (benchmark-executable bench)
 			   :buffer (benchmark-name bench))
 	  (let* ((varying-exps
-		  (mapcar (lambda (x) (car (read-from-string (car (cdr x)))))
-			  (benchmark-varying bench)))
+		  (mapcar (lambda (x) (mapcar 'number-to-string x)) (mapcar (lambda (x) (car (read-from-string (car (cdr x)))))
+			  (benchmark-varying bench))))
 		 (varying-vars
 		  (mapcar 'car (benchmark-varying bench)))
 		 (varying-selections
@@ -108,7 +123,9 @@
 	    (dolist (elt varying-selections ())
 	      ;; TODO: Keep hacking here. 
 	      (let* ((exec-cmd-orig (benchmark-executable bench))
-		     (exec-cmd (mapcar (lambda (x) (string-substitute "%a" "10" x)) exec-cmd-orig)))
+		     (exec-cmd (do-substitutions exec-cmd-orig varying-vars elt)))
+
+		(insert-bm (format "Launching executable: %s\n" (car exec-cmd)))
 		(make-process  :name (benchmark-name bench)
 			       :command exec-cmd
 			       :buffer (benchmark-name bench))))))
