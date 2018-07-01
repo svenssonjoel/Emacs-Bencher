@@ -18,6 +18,11 @@ int main (int argc, char **argv) {
     printf("%s\n", argv[i]);
     
   }
+
+  /*Tag examples*/
+  printf("TAG0: 15\n");
+  printf("TAG1: 1.9\n");
+	 
   
   return 0;
 }

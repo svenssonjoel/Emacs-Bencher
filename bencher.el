@@ -6,7 +6,7 @@
 
 
 ;; Benchmark struct
-(cl-defstruct benchmark name executable varying)
+(cl-defstruct benchmark name executable varying tags)
 
 ;; CSV data container. Two lists, one for default columns
 ;; and one for user specified data tags 
@@ -47,6 +47,7 @@
 
 
 ;; TODO: Break up into small functions.
+;; TODO: Add error checking (what if there is no car (cdr x) ?? (faulty .bench file)
 ;;       Just dispatch from here. 
 (defun parse-benchmark (bench l)
   "Parse a single benchmark until a line with %% is found"
@@ -57,6 +58,13 @@
 	  (let ((key (car ps))
 		(value (chomp (car (cdr ps))))) ; for simple cases 
 	    (cond ((string= key "name") (setf (benchmark-name bench) value))
+		  ((string= key "tag")
+		   (let* ((value-words (split-string value " "))
+			  (tag-name (car value-words))
+			  (tag-type (car (cdr value-words))))
+		     (setf (benchmark-tags bench)
+			   (cons (list tag-name tag-type)
+				 (benchmark-tags bench)))))
 		  ((string= key "varying")
 		   (let* ((value-words (split-string value " "))
 			  (value-variable (car value-words))
