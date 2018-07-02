@@ -46,6 +46,26 @@
     (buffer-string)))
 
 
+(defun read-expressions-from-string (str)
+  "Read a number of (all) expressions from a string."
+  (let ((fun))
+    (setq fun
+	  (lambda (loc)
+	    (condition-case err
+		(let ((res (read-from-string str loc)))
+		  (let ((e (car res))
+			(n (cdr res)))
+		    (cons e (funcall fun n))))
+	      (end-of-file '()))))
+    (funcall fun 0)))
+
+
+			      
+  
+  
+
+
+
 ;; TODO: Break up into small functions.
 ;;       Just dispatch from here. 
 ;; TODO: Add error checking (what if there is no car (cdr x) ?? (faulty .bench file)
@@ -75,11 +95,7 @@
 			   (cons (list value-variable value-body)
 				 (benchmark-varying bench)))))
 		  ((string= key "executable")
-		   (let ((tmp (split-string value " ")))
-		     (let ((exe-args (if (string-prefix-p "./" (car tmp))
-					 (cons (expand-file-name (car tmp)) (cdr tmp))
-				       tmp)))
-		       (setf (benchmark-executable bench) exe-args)))))
+		   (setf (benchmark-executable bench) value)))
 	    (parse-benchmark bench (cdr l))))
       l)
     )
@@ -123,7 +139,10 @@
 			   :command (benchmark-executable bench)
 			   :buffer (benchmark-name bench))
 	  (let* ((varying-exps
-		  (mapcar (lambda (x) (mapcar 'number-to-string x)) (mapcar (lambda (x) (car (read-from-string (car (cdr x)))))
+		  (mapcar (lambda (x)
+			    (mapcar 'number-to-string x))
+			  (mapcar (lambda (x)
+				    (car (read-from-string (car (cdr x))))) 
 			  (benchmark-varying bench))))
 		 (varying-vars
 		  (mapcar 'car (benchmark-varying bench)))
@@ -132,8 +151,19 @@
 	    (dolist (elt varying-selections ())
 	      ;; TODO: Keep hacking here. 
 	      (let* ((exec-cmd-orig (benchmark-executable bench))
-		     (exec-cmd (do-substitutions exec-cmd-orig varying-vars elt)))
-
+		     (exec-cmd-str (car (do-substitutions (list exec-cmd-orig)
+							  varying-vars elt)))
+		     (exe-args-exprs (read-expressions-from-string exec-cmd-str))
+		     (exe-args-evaled (mapcar 'eval (cdr exe-args-exprs)))
+		     (exec-args (mapcar 'number-to-string exe-args-evaled))
+		     (exec-sym (symbol-name (car exe-args-exprs)))
+		     (exec-full (if (string-prefix-p "./" exec-sym)
+				    (expand-file-name exec-sym)
+				  (exec-sym)))
+		     (exec-cmd (cons exec-full exec-args)))
+		;(insert-bm (format "%s\n" exe-args-exprs))
+		;(insert-bm (format "%s\n" exe-args-evaled))
+		;(insert-bm (format "%s\n" exec-args))
 		(insert-bm (format "Launching executable: %s\n" (car exec-cmd)))
 		(make-process :name (benchmark-name bench)
 			      :command exec-cmd
@@ -143,6 +173,7 @@
       (set-buffer prev-buf)
       ))
   )
+
 
 (directory-files ".")
 
