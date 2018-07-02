@@ -47,8 +47,10 @@
 
 
 ;; TODO: Break up into small functions.
-;; TODO: Add error checking (what if there is no car (cdr x) ?? (faulty .bench file)
 ;;       Just dispatch from here. 
+;; TODO: Add error checking (what if there is no car (cdr x) ?? (faulty .bench file)
+;; TODO: Can read out several expressions (read-from-string returns both parsed elisp and number of characters consumed).
+
 (defun parse-benchmark (bench l)
   "Parse a single benchmark until a line with %% is found"
   (if (not l)
@@ -98,7 +100,6 @@
   )
 
 
-
 (defun do-substitutions (strs vars values)
   "Substitues variables from list vars with values from list values in list of strings"
   (if (not vars) strs
@@ -134,9 +135,9 @@
 		     (exec-cmd (do-substitutions exec-cmd-orig varying-vars elt)))
 
 		(insert-bm (format "Launching executable: %s\n" (car exec-cmd)))
-		(make-process  :name (benchmark-name bench)
-			       :command exec-cmd
-			       :buffer (benchmark-name bench))))))
+		(make-process :name (benchmark-name bench)
+			      :command exec-cmd
+			      :buffer (benchmark-name bench))))))
 	      
 	)
       (set-buffer prev-buf)
@@ -155,7 +156,6 @@
 	)
     ())
   )
-
 
 ;; (split-string (replace-regexp-in-string "[ ]+" "" "apa: bepa") ":")
 
