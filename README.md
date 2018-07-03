@@ -32,7 +32,7 @@ tag: TAG1 double
 ```
 * name: specifies a name for this set of benchmark runs.
 * varying: specifies a variable and a space for it to range over.
-* executable: specifies that an executable called "bench" should be executed with two arguments
-that range over the lists specified as varying.
-* tag: specifies the name and the type of tagged data in the program-under-benchmarking output stream.
+* executable: specifies that an executable called "bench1" should be executed with two arguments
+that range over the lists specified as varying. Each combination of one value from the a list and one from the b constitutes a run.
+* tag: specifies the name and the type of tagged data in the program-under-benchmarking output stream. This data will be collected and stored.
 
