@@ -88,10 +88,8 @@
 
 
 
-;; TODO: Break up into small functions.
-;;       Just dispatch from here. 
+;; TODO: Break up into small functions. Just dispatch from here. 
 ;; TODO: Add error checking (what if there is no car (cdr x) ?? (faulty .bench file)
-;; TODO: Can read out several expressions (read-from-string returns both parsed elisp and number of characters consumed).
 
 (defun parse-benchmark (bench l)
   "Parse a single benchmark until a line with %% is found"
@@ -179,9 +177,9 @@
 		     (exe-args-evaled (mapcar 'eval (cdr exe-args-exprs)))
 		     (exec-args (mapcar 'number-to-string exe-args-evaled))
 		     (exec-sym (symbol-name (car exe-args-exprs)))
-		     (exec-full (if (string-prefix-p "./" exec-sym)
-				    (expand-file-name exec-sym)
-				  (exec-sym)))
+		     (exec-full (if (string-prefix-p "./" exec-sym) ;; Expand to full filename (full path) 
+				    (expand-file-name exec-sym)     ;; if a file in pwd is specified in the .bench file. 
+				  (exec-sym)))                      ;; TODO: Alternatively figure out how to make make-process find executables in pwd. 
 		     (exec-cmd (cons exec-full exec-args)))
 		;(insert-bm (format "%s\n" exe-args-exprs))
 		;(insert-bm (format "%s\n" exe-args-evaled))
