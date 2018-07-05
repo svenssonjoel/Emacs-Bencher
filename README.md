@@ -25,7 +25,7 @@ Be able to run sets of performance (or other) tests on executables (to begin wit
 name: test
 varying: a (1 2 3 4 5 6)
 varying: b (1 2)
-executable: ./bench1 (* %a 5) (+ %b 10)
+executable: ./bench1 (* a 5) (+ b 10)
 tag: TAG0 int
 tag: TAG1 double
 %%
@@ -33,6 +33,6 @@ tag: TAG1 double
 * name: specifies a name for this set of benchmark runs.
 * varying: specifies a variable and a space for it to range over.
 * executable: specifies that an executable called "bench1" should be executed with two arguments
-that range over the lists specified as varying. Each combination of one value from the a list and one from the b constitutes a run.
+that range over the lists specified as varying. Each combination of one value from the a list and one from the b constitutes a run. List expressions in this string are evaluated and the result of evaluation passed to the executable.
 * tag: specifies the name and the type of tagged data in the program-under-benchmarking output stream. This data will be collected and stored.
 
