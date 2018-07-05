@@ -2,14 +2,14 @@
 name: test1
 varying: a (1 2 3 4 5 6)
 varying: b (1 2) 
-executable: ./bench1 %a %b
+executable: ./bench1 a b
 tag: TAG0 int
 tag: TAG1 double
 %%
 name: test2
 varying: a (1 2 3 4 5 6)
 varying: b (1 2)
-executable: ./bench1 (* %a 5) (+ %b 10)
+executable: ./bench1 (* a 5) (+ b 10)
 tag: TAG0 int
 tag: TAG1 double
 %%

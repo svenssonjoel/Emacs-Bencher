@@ -139,11 +139,24 @@
 (defun do-substitutions (strs vars values)
   "Substitues variables from list vars with values from list values in list of strings"
   (if (not vars) strs
-    (let* ((var (concat "%" (car vars)))
-	   (val (car values)))
-      (let ((strs-new (mapcar (lambda (x) (string-substitute var val x)) strs)))
+    (let* ((var (car vars)) ; (concat "%" (car vars)))
+	   (val (format " %s " (car values))))
+      (let ((strs-new (mapcar (lambda (x)
+				(if (string= var x)
+				    var
+				  (if (string-match
+				       (concat "[\s \t]+"
+					       (concat var "[\s \t]+")) x 0)
+				      (replace-match val nil nil x)
+				    (if (string-match
+					 (concat "[\s \t]*"
+						 (concat var "\\'")) x 0)
+					(replace-match val nil nil x)
+				      x)))
+				  ) strs )))
 	(do-substitutions strs-new (cdr vars) (cdr values))))))
  
+
 
 (defun run-benchmark (bench)
   "Run a single benchmark"
