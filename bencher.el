@@ -47,8 +47,6 @@
   "Insert Emacs Bencher text into the benchmark output buffer"
   (insert (concat "[EMACS BENCHER] " str)))
 
-
-; From the web (https://www.emacswiki.org/emacs/ElispCookbook#toc6)
 (defun chomp (str)
   "Chomp leading and tailing whitespace from STR."
   (while (string-match "\\`\n+\\|^\\s-+\\|\\s-+$\\|\n+\\'"
@@ -108,6 +106,7 @@
 			   (cons (list tag-name tag-type)
 				 (benchmark-tags bench)))))
 		  ((string= key "varying")
+		   ; Bit ugly that the string is split at spaces and then recombined..
 		   (let* ((value-words (split-string value " "))
 			  (value-variable (car value-words))
 			  (value-body (string-join (cdr value-words) " ")))
