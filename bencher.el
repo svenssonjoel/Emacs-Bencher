@@ -30,12 +30,26 @@
 ;; Benchmark struct
 (cl-defstruct benchmark name executable varying tags)
 
+;; Benchmark "run-unit"
+(cl-defstruct benchmark-run-unit name exec-cmd tags)
+
 ;; CSV data container. Two lists, one for default columns
 ;; and one for user specified data tags 
 (cl-defstruct csv-data default tags)
 
 ;; Default csv header
 (defconst default-csv-header '("Name")) 
+
+;; ------------------------------------------------------------
+;; State of Emacs-Bencher
+
+(defvar emacs-bencher-running-benchmarks nil)
+(defvar emacs-bencher-scheduled-benchmarks-list ()) ; benches to run
+	; is it possible to prohibit changes to these lists from the "outside" ?
+
+
+;; ------------------------------------------------------------
+;; CODE!
 
 (defun read-lines (filePath)
   "Return a list of lines of a file at filePath."
@@ -78,13 +92,6 @@
 		    (cons e (funcall fun n))))
 	      (end-of-file '()))))
     (funcall fun 0)))
-
-
-			      
-  
-  
-
-
 
 ;; TODO: Break up into small functions. Just dispatch from here. 
 ;; TODO: Add error checking (what if there is no car (cdr x) ?? (faulty .bench file)
@@ -220,16 +227,73 @@
     ())
   )
 
+(defun do-benchmarks (benches)
+  "Enqueue all benchmarks and start the benchmark processing timer func"
+  (if emacs-bencher-running-benchmarks
+      (message "Error: Already running benchmarks")
+    (if benches
+	(enqueue-all-benches benches)
+      (message "Error: No benchmarks to run"))))
+
+(defun enqueue-all-benches (benches)
+  "Enqueue all benchmarks, add to scheduled benchmark list"
+  (if benches
+      (progn 
+	(enqueue-benches (car benches))
+	(enqueue-all-benches (cdr benches)))
+    ()))
+
+(defun enqueue-benches (bench)
+  "Expand the varying space of the benchmark and enqueue each instance"
+  ; Todo add a case for the bench without varying... 
+  (let* ((varying-exps
+	  (mapcar (lambda (x)
+		    (mapcar 'number-to-string x))
+		  (mapcar (lambda (x)
+			    (car (read-from-string (car (cdr x)))))
+			  (benchmark-varying bench))))
+	 (varying-vars
+	  (mapcar 'car (benchmark-varying bench)))
+	 (varying-selections
+	  (all-selections varying-exps)))
+    (dolist (elt varying-selections ())
+      (let* ((exec-cmd-orig (benchmark-executable bench))
+	     (exec-cmd-str (car (do-substitutions (list exec-cmd-orig)
+						  varying-vars elt)))
+	     (exe-args-exprs (read-expressions-from-string exec-cmd-str))
+	     (exe-args-evaled (mapcar 'eval (cdr exe-args-exprs)))
+	     (exec-args (mapcar 'number-to-string exe-args-evaled))
+	     (exec-sym (symbol-name (car exe-args-exprs)))
+	     (exec-full (if (string-prefix-p "./" exec-sym) ;; Expand to full filename (full path) 
+			    (expand-file-name exec-sym)     ;; if a file in pwd is specified in the .bench file. 
+			  (exec-sym)))                      ;; TODO: Alternatively figure out how to make make-process find executables in pwd. 
+	     (exec-cmd (cons exec-full exec-args)))
+
+	(let ((run-unit (make-benchmark-run-unit)))
+	  (setf (benchmark-run-unit-name run-unit) (benchmark-name bench))
+	  (setf (benchmark-run-unit-exec-cmd run-unit) exec-cmd)
+	  (setf (benchmark-run-unit-tags run-unit) (benchmark-tags bench))
+	  (setq emacs-bencher-scheduled-benchmarks-list
+		(cons run-unit emacs-bencher-scheduled-benchmarks-list)))))))
+
+	  
+	  
+
 ;; (split-string (replace-regexp-in-string "[ ]+" "" "apa: bepa") ":")
 
 
-(defun a (arg)
+(defun a ()
   "testing"
   (run-benchmarks (parse-benchmarks (read-lines "./test.bench"))))
 
-(defun b (arg)
+(defun b ()
   "testing"
   (parse-benchmarks (read-lines "./test.bench")))
+
+(defun c ()
+  "testing"
+  (do-benchmarks (parse-benchmarks (read-lines "./test.bench"))))
+  
 
 
 (defun all-selections (l)
@@ -249,3 +313,21 @@
 	
 	
   
+
+;; (defun apa (ref)
+;;   "testing"
+;;   (setq ref (+ (eval ref) 1))
+;;   (message "Hello World %s" (eval ref)))
+
+
+;; (defvar (run 0))
+
+;; (defun start-apa ()
+;;   "testing"
+;;   (setq run 0)
+;;   (run-at-time t 1 #'apa 'run))
+
+;; (cancel-timer (car timer-list))
+
+
+
