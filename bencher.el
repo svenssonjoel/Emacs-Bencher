@@ -233,40 +233,18 @@
 ;; 	)
 ;;     ())
 ;;   )
-
-
-(defun generate-run-unit-sentinel (buffer process signal)
-  (lambda (proc sig)
-    (cond
-     ((equal signal "finished\n")
-      (progn
-	(message "Benchmark finished! %s" buffer)
-	(setq emacs-bencher-running-benchmark nil))))
-    process signal)
-  )
-
-;; Now the command a user will call to initiate the md process
-(defun mdmua-open-message (key)
-  "Open the message with key."
-  (interactive (list 
-		(plist-get (text-properties-at (point)) 'key)))
-  (let* ((buf (get-buffer-create "mdmua-message-channel"))
-         (proc (start-process-shell-command "getmessage" buf (format "text %s" key))))
-    (set-process-sentinel proc 'mdmua--sentinel-gettext)))
-
 			  
 (defun run-benchmarks ()
   "Process enqueued benchmarks"
   (message "There are %s benchmarks to process"
 	   (length emacs-bencher-scheduled-benchmarks-list))
   (if (not emacs-bencher-scheduled-benchmarks-list)
-      ()
+      (cancel-timer emacs-bencher-benchmark-run-timer) ; Turn off recurring timer
     (if emacs-bencher-running-benchmark
 	() ; Benchmark already in progress just return
       (progn
 	(setq emacs-bencher-running-benchmark t)
 	(let* ((bench (car emacs-bencher-scheduled-benchmarks-list))
-	       (work-dif default-directory)
 	       (prev-buf (current-buffer))
 	       (buf (get-buffer-create (benchmark-run-unit-name bench))))
 	  (setq emacs-bencher-scheduled-benchmarks-list
@@ -278,9 +256,32 @@
 				    :buffer (benchmark-run-unit-name bench))))
 	    (insert-bm "Starting process!\n")
 	    (setq emacs-bencher-run-unit-sentinel (lambda (x y) (generate-run-unit-sentinel buf x y)))
-	    (set-process-sentinel proc 'emacs-bencher-run-unit-sentinel))))
-	  )))
-	   
+	    (set-process-sentinel
+	     proc
+	     (lexical-let ((buf buf)) ;
+	       (lambda (process signal)
+		 (cond
+		  ((equal signal "finished\n")
+		   (progn
+		     (message "Benchmark finished! %s" buf)
+		     (setq emacs-bencher-running-benchmark nil)))))))
+	    ))))))
+		 
+	      
+	       
+	 
+
+
+    (defun generate-run-unit-sentinel (buffer process signal)
+  (lambda (proc sig)
+    (cond
+     ((equal signal "finished\n")
+      (progn
+	(message "Benchmark finished! %s" buffer)
+	(setq emacs-bencher-running-benchmark nil))))
+    process signal)
+  )
+
   
 
 (defun do-benchmarks (benches)
