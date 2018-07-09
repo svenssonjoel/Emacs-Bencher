@@ -19,6 +19,10 @@
 (require 'seq)
 (require 'cl)
 
+
+;; ------------------------------------------------------------
+;; Version
+
 (defconst emacs-bencher-version '(0 0 0))
 (defun emacs-bencher-version-string ()
   "Returns version string"
@@ -26,6 +30,9 @@
 	(b (car (cdr emacs-bencher-version)))
 	(c (car (cdr (cdr emacs-bencher-version)))))
     (format "%s.%s.%s" a b c)))
+
+;; ------------------------------------------------------------
+;; data structures 
 
 ;; Benchmark struct
 (cl-defstruct benchmark name executable varying tags)
@@ -53,7 +60,7 @@
 ;debug
 (setq emacs-bencher-scheduled-benchmarks-list ())
 (setq emacs-bencher-running-benchmark nil)
-(cancel-timer (car timer-list))
+;(cancel-timer (car timer-list))
 
 ;; ------------------------------------------------------------
 ;; CODE!
@@ -99,6 +106,21 @@
 		    (cons e (funcall fun n))))
 	      (end-of-file '()))))
     (funcall fun 0)))
+
+(defun all-selections (l)
+  "generate all possible selections of one element per list from list of list"
+  (if (not l) '(()) ; nothing to select from
+    (let* ((a (car l))
+	   (b (all-selections (cdr l))))
+      (let (fun)
+	(setf fun (lambda (l ls) (if (not l) ()
+				   (let ((a (car l))
+					 (b (cdr l)))
+				     (append (mapcar (lambda (x) (cons a x)) ls)
+					     (funcall fun b ls))))))
+      
+	(funcall fun a b)))))
+
 
 ;; TODO: Break up into small functions. Just dispatch from here. 
 ;; TODO: Add error checking (what if there is no car (cdr x) ?? (faulty .bench file)
@@ -169,70 +191,6 @@
 				  ) strs )))
 	(do-substitutions strs-new (cdr vars) (cdr values))))))
  
-
-
-(defun run-benchmark (bench)
-  "Run a single benchmark"
-  (let ((work-dir default-directory)
-	(prev-buf (current-buffer)))
-    (let (( buf (get-buffer-create (benchmark-name bench))))
-      (set-buffer buf)
-      ;(insert "Running benchmark\n")
-      (let ((default-directory work-dir))
-	(insert-bm (format "Running benchmark: %s\n" (benchmark-name bench)))
-	(if (not (benchmark-varying bench))
-	    (make-process  :name (benchmark-name bench)
-			   :command (benchmark-executable bench)
-			   :buffer (benchmark-name bench))
-	  (let* ((varying-exps
-		  (mapcar (lambda (x)
-			    (mapcar 'number-to-string x))
-			  (mapcar (lambda (x)
-				    (car (read-from-string (car (cdr x))))) 
-			  (benchmark-varying bench))))
-		 (varying-vars
-		  (mapcar 'car (benchmark-varying bench)))
-		 (varying-selections
-		  (all-selections varying-exps)))
-	    (dolist (elt varying-selections ())
-	      ;; TODO: Keep hacking here. 
-	      (let* ((exec-cmd-orig (benchmark-executable bench))
-		     (exec-cmd-str (car (do-substitutions (list exec-cmd-orig)
-							  varying-vars elt)))
-		     (exe-args-exprs (read-expressions-from-string exec-cmd-str))
-		     (exe-args-evaled (mapcar 'eval (cdr exe-args-exprs)))
-		     (exec-args (mapcar 'number-to-string exe-args-evaled))
-		     (exec-sym (symbol-name (car exe-args-exprs)))
-		     (exec-full (if (string-prefix-p "./" exec-sym) ;; Expand to full filename (full path) 
-				    (expand-file-name exec-sym)     ;; if a file in pwd is specified in the .bench file. 
-				  (exec-sym)))                      ;; TODO: Alternatively figure out how to make make-process find executables in pwd. 
-		     (exec-cmd (cons exec-full exec-args)))
-		;(insert-bm (format "%s\n" exe-args-exprs))
-		;(insert-bm (format "%s\n" exe-args-evaled))
-		;(insert-bm (format "%s\n" exec-args))
-		(insert-bm (format "Launching executable: %s\n" (car exec-cmd)))
-		(make-process :name (benchmark-name bench)
-			      :command exec-cmd
-			      :buffer (benchmark-name bench))))))
-	      
-	)
-      (set-buffer prev-buf)
-      ))
-  )
-
-
-(directory-files ".")
-
-
-;; (defun run-benchmarks (benches)
-;;   "Run all benchmarks in a list"
-;;   (if benches
-;;       (progn
-;; 	(run-benchmark (car benches))
-;; 	(run-benchmarks (cdr benches))
-;; 	)
-;;     ())
-;;   )
 			  
 (defun run-benchmarks ()
   "Process enqueued benchmarks"
@@ -251,11 +209,10 @@
 		(cdr emacs-bencher-scheduled-benchmarks-list))
 	  (set-buffer buf)
 	  (insert-bm (format "Running benchmark: %s\n" (benchmark-run-unit-name bench)))
+	  (message "Running benchmark: %s" (benchmark-run-unit-name bench))
 	  (let ((proc (make-process :name (benchmark-run-unit-name bench)
 	    			    :command (benchmark-run-unit-exec-cmd bench)
 				    :buffer (benchmark-run-unit-name bench))))
-	    (insert-bm "Starting process!\n")
-	    (setq emacs-bencher-run-unit-sentinel (lambda (x y) (generate-run-unit-sentinel buf x y)))
 	    (set-process-sentinel
 	     proc
 	     (lexical-let ((buf buf)) ;
@@ -266,22 +223,6 @@
 		     (message "Benchmark finished! %s" buf)
 		     (setq emacs-bencher-running-benchmark nil)))))))
 	    ))))))
-		 
-	      
-	       
-	 
-
-
-    (defun generate-run-unit-sentinel (buffer process signal)
-  (lambda (proc sig)
-    (cond
-     ((equal signal "finished\n")
-      (progn
-	(message "Benchmark finished! %s" buffer)
-	(setq emacs-bencher-running-benchmark nil))))
-    process signal)
-  )
-
   
 
 (defun do-benchmarks (benches)
@@ -339,12 +280,7 @@
 	  (setq emacs-bencher-scheduled-benchmarks-list
 		(cons run-unit emacs-bencher-scheduled-benchmarks-list)))))))
 
-	  
-	  
-
-;; (split-string (replace-regexp-in-string "[ ]+" "" "apa: bepa") ":")
-
-
+; Debug
 (defun a ()
   "testing"
   (run-benchmarks (parse-benchmarks (read-lines "./test.bench"))))
@@ -357,40 +293,6 @@
   "testing"
   (do-benchmarks (parse-benchmarks (read-lines "./test.bench"))))
   
-
-
-(defun all-selections (l)
-  "generate all possible selections of one element per list from list of list"
-  (if (not l) '(()) ; nothing to select from
-    (let* ((a (car l))
-	   (b (all-selections (cdr l))))
-      (let (fun)
-	(setf fun (lambda (l ls) (if (not l) ()
-				   (let ((a (car l))
-					 (b (cdr l)))
-				     (append (mapcar (lambda (x) (cons a x)) ls)
-					     (funcall fun b ls))))))
-      
-	(funcall fun a b)))))
-
-	
-	
-  
-
-;; (defun apa (ref)
-;;   "testing"
-;;   (setq ref (+ (eval ref) 1))
-;;   (message "Hello World %s" (eval ref)))
-
-
-;; (defvar (run 0))
-
-;; (defun start-apa ()
-;;   "testing"
-;;   (setq run 0)
-;;   (run-at-time t 1 #'apa 'run))
-
-;; (cancel-timer (car timer-list))
 
 
 

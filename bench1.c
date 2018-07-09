@@ -19,7 +19,11 @@ int main (int argc, char **argv) {
     
   }
 
-  sleep(5);
+  for (i = 0; i < 5; i ++) {
+    printf(".");
+    sleep(1);
+  }
+  printf("\n"); 
   
   /*Tag examples*/
   printf("TAG0: 15\n");
