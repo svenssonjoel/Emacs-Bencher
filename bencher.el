@@ -41,12 +41,19 @@
 (defconst default-csv-header '("Name")) 
 
 ;; ------------------------------------------------------------
-;; State of Emacs-Bencher
+;; State of Emacs-Bencher (Is it possible to prohibit changes to
+;; these from the outside?)
 
-(defvar emacs-bencher-running-benchmarks nil)
+(defvar emacs-bencher-running-benchmark nil)
 (defvar emacs-bencher-scheduled-benchmarks-list ()) ; benches to run
-	; is it possible to prohibit changes to these lists from the "outside" ?
+(defvar emacs-bencher-benchmark-run-timer nil)
 
+(defvar emacs-bencher-run-unit-sentinel nil)
+
+;debug
+(setq emacs-bencher-scheduled-benchmarks-list ())
+(setq emacs-bencher-running-benchmark nil)
+(cancel-timer (car timer-list))
 
 ;; ------------------------------------------------------------
 ;; CODE!
@@ -217,22 +224,77 @@
 (directory-files ".")
 
 
-(defun run-benchmarks (benches)
-  "Run all benchmarks in a list"
-  (if benches
+;; (defun run-benchmarks (benches)
+;;   "Run all benchmarks in a list"
+;;   (if benches
+;;       (progn
+;; 	(run-benchmark (car benches))
+;; 	(run-benchmarks (cdr benches))
+;; 	)
+;;     ())
+;;   )
+
+
+(defun generate-run-unit-sentinel (buffer process signal)
+  (lambda (proc sig)
+    (cond
+     ((equal signal "finished\n")
       (progn
-	(run-benchmark (car benches))
-	(run-benchmarks (cdr benches))
-	)
-    ())
+	(message "Benchmark finished! %s" buffer)
+	(setq emacs-bencher-running-benchmark nil))))
+    process signal)
   )
+
+;; Now the command a user will call to initiate the md process
+(defun mdmua-open-message (key)
+  "Open the message with key."
+  (interactive (list 
+		(plist-get (text-properties-at (point)) 'key)))
+  (let* ((buf (get-buffer-create "mdmua-message-channel"))
+         (proc (start-process-shell-command "getmessage" buf (format "text %s" key))))
+    (set-process-sentinel proc 'mdmua--sentinel-gettext)))
+
+			  
+(defun run-benchmarks ()
+  "Process enqueued benchmarks"
+  (message "There are %s benchmarks to process"
+	   (length emacs-bencher-scheduled-benchmarks-list))
+  (if (not emacs-bencher-scheduled-benchmarks-list)
+      ()
+    (if emacs-bencher-running-benchmark
+	() ; Benchmark already in progress just return
+      (progn
+	(setq emacs-bencher-running-benchmark t)
+	(let* ((bench (car emacs-bencher-scheduled-benchmarks-list))
+	       (work-dif default-directory)
+	       (prev-buf (current-buffer))
+	       (buf (get-buffer-create (benchmark-run-unit-name bench))))
+	  (setq emacs-bencher-scheduled-benchmarks-list
+		(cdr emacs-bencher-scheduled-benchmarks-list))
+	  (set-buffer buf)
+	  (insert-bm (format "Running benchmark: %s\n" (benchmark-run-unit-name bench)))
+	  (let ((proc (make-process :name (benchmark-run-unit-name bench)
+	    			    :command (benchmark-run-unit-exec-cmd bench)
+				    :buffer (benchmark-run-unit-name bench))))
+	    (insert-bm "Starting process!\n")
+	    (setq emacs-bencher-run-unit-sentinel (lambda (x y) (generate-run-unit-sentinel buf x y)))
+	    (set-process-sentinel proc 'emacs-bencher-run-unit-sentinel))))
+	  )))
+	   
+  
 
 (defun do-benchmarks (benches)
   "Enqueue all benchmarks and start the benchmark processing timer func"
-  (if emacs-bencher-running-benchmarks
-      (message "Error: Already running benchmarks")
+  (if emacs-bencher-scheduled-benchmarks-list
+      (message "Error: There are already scheduled benchmarks") ; An alternative is to just schedule more! 
     (if benches
-	(enqueue-all-benches benches)
+	(progn
+	  (enqueue-all-benches benches)
+	  (if emacs-bencher-benchmark-run-timer
+	      (cancel-timer emacs-bencher-benchmark-run-timer)
+	    ())	
+	  (setq emacs-bencher-benchmark-run-timer
+		(run-at-time t 1 #'run-benchmarks))) 
       (message "Error: No benchmarks to run"))))
 
 (defun enqueue-all-benches (benches)
