@@ -195,7 +195,9 @@
 	(do-substitutions strs-new (cdr vars) (cdr values))))))
  
 (defun tag-parsing-filter (name tags proc string)
-  "Filter process output and parse out tag data" 
+  "Filter process output and parse out tag data"
+  (message "running filter")
+  
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
       (let ((moving (= (point) (process-mark proc))))
@@ -211,23 +213,29 @@
     (add-tag-values output-lines tags))
   )
 
+;; Dont think the types are needed on the tags... remove it 
 (defun add-tag-values (data tags)
   (if data
-      (progn
+      (progn 
 	(let* ((key-val (split-string (car data) ":"))
 	       (key (car key-val))
 	       (val (car (cdr key-val)))
 	       (key-tag-assoc (assoc key tags)))
-	  (if (>= (length key-tag-assoc) 2)
-	      (cond
-	       ((string= (car (cdr key-tag-assoc)) "double") (message "Parse a double")
-		(string= (car (cdr key-tag-assoc)) "int") (message "Parse an integer")
-		t (message "Not a tag!")))
-	    
-	    (message "Not a tag!")))
+	  (if (= (length key-tag-assoc) 2)
+	      (progn
+		(message "starting a tag parse %s" key-val)
+		(cond
+		 ((string= (car (cdr key-tag-assoc)) "double")
+		  (setq csv-data (cons (cons key val) csv-data)))
+		 ((string= (car (cdr key-tag-assoc)) "int")
+		  (setq csv-data (cons (cons key val) csv-data)))
+				
+		 (t ())))
+	    ()))
 	(add-tag-values (cdr data) tags))))
 
-
+  
+  
 (defun run-benchmarks ()
   "Process enqueued benchmarks"
   (message "There are %s benchmarks to process"
@@ -246,8 +254,8 @@
 	  (setq emacs-bencher-scheduled-benchmarks-list
 		(cdr emacs-bencher-scheduled-benchmarks-list))
 
-	  (setq csv-data (make-csv-data)) ; prepare to collect new csv data				
-	  (setq csv-data (cons "Name"  (benchmark-run-unit-name bench))) ; dotted pair
+	  (setq csv-data ()) ; prepare to collect new csv data				
+	  (setq csv-data (cons (cons "Name"  (benchmark-run-unit-name bench)) csv-data)) ; dotted pair
 
 	  
 	  (set-buffer buf)
@@ -264,6 +272,7 @@
 		  ((equal signal "finished\n")
 		   (progn
 		     (message "Benchmark finished! %s" buf)
+		     (message "collected data: %s" csv-data)
 		     (setq emacs-bencher-running-benchmark nil)))))))
 	    (set-process-filter
 	     proc
