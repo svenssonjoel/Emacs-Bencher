@@ -191,7 +191,17 @@
 				  ) strs )))
 	(do-substitutions strs-new (cdr vars) (cdr values))))))
  
-			  
+(defun ordinary-insertion-filter (proc string)
+  (when (buffer-live-p (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      (let ((moving (= (point) (process-mark proc))))
+	(save-excursion
+	  ;; Insert the text, advancing the process marker.
+	  (goto-char (process-mark proc))
+	  (insert (format "TESTING: <<%s>>" string))
+               (set-marker (process-mark proc) (point)))
+	(if moving (goto-char (process-mark proc)))))))
+
 (defun run-benchmarks ()
   "Process enqueued benchmarks"
   (message "There are %s benchmarks to process"
@@ -222,6 +232,8 @@
 		   (progn
 		     (message "Benchmark finished! %s" buf)
 		     (setq emacs-bencher-running-benchmark nil)))))))
+	    (set-process-filter
+	     proc #'ordinary-insertion-filter)
 	    ))))))
   
 
