@@ -42,7 +42,7 @@
 
 ;; CSV data container. Two lists, one for default columns
 ;; and one for user specified data tags 
-(cl-defstruct csv-data default tags)
+(cl-defstruct csv-format default tags)
 
 ;; Default csv header
 (defconst default-csv-header '("Name")) 
@@ -56,6 +56,9 @@
 (defvar emacs-bencher-benchmark-run-timer nil)
 
 (defvar emacs-bencher-run-unit-sentinel nil)
+
+(defvar csv-data ()) ; var to collect csv data into (key value) pair list
+					
 
 ;debug
 (setq emacs-bencher-scheduled-benchmarks-list ())
@@ -191,16 +194,39 @@
 				  ) strs )))
 	(do-substitutions strs-new (cdr vars) (cdr values))))))
  
-(defun ordinary-insertion-filter (proc string)
+(defun tag-parsing-filter (name tags proc string)
+  "Filter process output and parse out tag data" 
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
       (let ((moving (= (point) (process-mark proc))))
 	(save-excursion
 	  ;; Insert the text, advancing the process marker.
 	  (goto-char (process-mark proc))
-	  (insert (format "TESTING: <<%s>>" string))
-               (set-marker (process-mark proc) (point)))
-	(if moving (goto-char (process-mark proc)))))))
+	  (insert string)
+	  (set-marker (process-mark proc) (point)))
+	(if moving (goto-char (process-mark proc))))))
+  ;; Parse tags and put in csv data
+  (let* ((tmp-lines (split-string string "\n" t))
+	 (output-lines (mapcar 'chomp tmp-lines))) ; dont think needed
+    (add-tag-values output-lines tags))
+  )
+
+(defun add-tag-values (data tags)
+  (if data
+      (progn
+	(let* ((key-val (split-string (car data) ":"))
+	       (key (car key-val))
+	       (val (car (cdr key-val)))
+	       (key-tag-assoc (assoc key tags)))
+	  (if (>= (length key-tag-assoc) 2)
+	      (cond
+	       ((string= (car (cdr key-tag-assoc)) "double") (message "Parse a double")
+		(string= (car (cdr key-tag-assoc)) "int") (message "Parse an integer")
+		t (message "Not a tag!")))
+	    
+	    (message "Not a tag!")))
+	(add-tag-values (cdr data) tags))))
+
 
 (defun run-benchmarks ()
   "Process enqueued benchmarks"
@@ -211,12 +237,19 @@
     (if emacs-bencher-running-benchmark
 	() ; Benchmark already in progress just return
       (progn
-	(setq emacs-bencher-running-benchmark t)
+				
+	(setq emacs-bencher-running-benchmark t)  ; A new bench run is starting
+	
 	(let* ((bench (car emacs-bencher-scheduled-benchmarks-list))
 	       (prev-buf (current-buffer))
 	       (buf (get-buffer-create (benchmark-run-unit-name bench))))
 	  (setq emacs-bencher-scheduled-benchmarks-list
 		(cdr emacs-bencher-scheduled-benchmarks-list))
+
+	  (setq csv-data (make-csv-data)) ; prepare to collect new csv data				
+	  (setq csv-data (cons "Name"  (benchmark-run-unit-name bench))) ; dotted pair
+
+	  
 	  (set-buffer buf)
 	  (insert-bm (format "Running benchmark: %s\n" (benchmark-run-unit-name bench)))
 	  (message "Running benchmark: %s" (benchmark-run-unit-name bench))
@@ -233,8 +266,15 @@
 		     (message "Benchmark finished! %s" buf)
 		     (setq emacs-bencher-running-benchmark nil)))))))
 	    (set-process-filter
-	     proc #'ordinary-insertion-filter)
-	    ))))))
+	     proc
+	     (lexical-let ((bench bench))
+	       (lambda (proc string)
+		 (tag-parsing-filter
+		  (benchmark-run-unit-name bench)
+		  (benchmark-run-unit-tags bench)
+		  proc
+		  string)))))
+	  )))))
   
 
 (defun do-benchmarks (benches)
