@@ -82,11 +82,11 @@
     (insert (concat string "\n"))
     (setq buffer-read-only t)
 
-    ;; 
-    (set-window-point
-     (get-buffer-window emacs-bencher-messages 'visible)
-     (point-max))
-    
+    ;; scroll the window
+    (let ((buffer-win (get-buffer-window emacs-bencher-messages 'visible)))
+      (if buffer-win
+	  (set-window-point buffer-win
+	   (point-max))))
     
     (set-buffer prev-buf)))
  
@@ -172,21 +172,28 @@
 	  (let ((key (car ps))
 		(value (chomp (car (cdr ps))))) ; for simple cases 
 	    (cond ((string= key "name") (setf (benchmark-name bench) value))
-		  ((string= key "tag")
-		   (let* ((value-words (split-string value " "))
-			  (tag-name (car value-words))
-			  (tag-type (car (cdr value-words))))
-		     (setf (benchmark-tags bench)
-			   (cons (list tag-name tag-type)
-				 (benchmark-tags bench)))))
+		  ((string= key "tags")
+		   (let* ((tags-list-expr (read-from-string value))
+			  (tags-list-strs
+			   (eval (car tags-list-expr))))
+		     (setf (benchmark-tags bench) tags-list-strs)))
+		    
+		  ;; (let* ((value-words (split-string value " "))
+		  ;; 	  (tag-name (car value-words))
+		  ;; 	  (tag-type (car (cdr value-words))))
+		  ;;    (setf (benchmark-tags bench)
+		  ;; 	   (cons (list tag-name tag-type)
+		  ;; 		 (benchmark-tags bench))))
 		  ((string= key "varying")
 		   ; Bit ugly that the string is split at spaces and then recombined..
 		   (let* ((value-words (split-string value " "))
-			  (value-variable (car value-words))
-			  (value-body (string-join (cdr value-words) " ")))
+		   	  (value-variable (car value-words))
+		    	  (value-body (string-join (cdr value-words) " ")))
 		     (setf (benchmark-varying bench)
-			   (cons (list value-variable value-body)
+			   (cons (cons value-variable value-body)
 				 (benchmark-varying bench)))))
+			   ;; (cons (list value-variable value-body)
+			   ;; 	 (benchmark-varying bench)))))
 		  ((string= key "executable")
 		   (setf (benchmark-executable bench) value)))
 	    (parse-benchmark bench (cdr l))))
@@ -256,16 +263,10 @@
 	       (key (car key-val))
 	       (val (car (cdr key-val)))
 	       (key-tag-assoc (assoc key tags)))
-	  (if (= (length key-tag-assoc) 2)
+	  (if (member key tags)
 	      (progn
 		(message-eb (format "starting a tag parse %s" key-val))
-		(cond
-		 ((string= (car (cdr key-tag-assoc)) "double")
-		  (setq csv-data (cons (cons key val) csv-data)))
-		 ((string= (car (cdr key-tag-assoc)) "int")
-		  (setq csv-data (cons (cons key val) csv-data)))
-				
-		 (t ())))
+		(setq csv-data (cons (cons key val) csv-data)))
 	    ()))
 	(add-tag-values (cdr data) tags))))
 
@@ -345,16 +346,15 @@
 (defun enqueue-benches (bench)
   "Expand the varying space of the benchmark and enqueue each instance"
   ; Todo add a case for the bench without varying... 
-  (let* ((varying-exps
-	  (mapcar (lambda (x)
-		    (mapcar 'number-to-string x))
-		  (mapcar (lambda (x)
-			    (car (read-from-string (car (cdr x)))))
-			  (benchmark-varying bench))))
+  (let* ((varying-strs
+	  ;; Woa this is ugly. Fix it 
+	  (mapcar (lambda (x) (mapcar 'number-to-string x))
+		  (mapcar 'eval (mapcar 'car (mapcar 'read-from-string
+			      (mapcar 'cdr (benchmark-varying bench)))))))
 	 (varying-vars
-	  (mapcar 'car (benchmark-varying bench)))
+	   (mapcar 'car (benchmark-varying bench)))
 	 (varying-selections
-	  (all-selections varying-exps)))
+	  (all-selections varying-strs)))
     (dolist (elt varying-selections ())
       (let* ((exec-cmd-orig (benchmark-executable bench))
 	     (exec-cmd-str (car (do-substitutions (list exec-cmd-orig)

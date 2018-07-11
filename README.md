@@ -22,17 +22,15 @@ Be able to run sets of performance (or other) tests on executables (to begin wit
 
 ```
 %%
-name: test
-varying: a (1 2 3 4 5 6)
-varying: b (1 2)
+name: test2
+varying: a '(1 2 3 4 5 6)
+varying: b '(1 2)
 executable: ./bench1 (* a 5) (+ b 10)
-tag: TAG0 int
-tag: TAG1 double
+tags: '("TAG0" "TAG1") 
 %%
 ```
 * name: specifies a name for this set of benchmark runs.
-* varying: specifies a variable and a space for it to range over.
+* varying: specifies a variable and a space (an elisp expression evaluating to a list of values) for it to range over.
 * executable: specifies that an executable called "bench1" should be executed with two arguments
 that range over the lists specified as varying. Each combination of one value from the a list and one from the b constitutes a run. Lisp expressions in this string are evaluated and the result of evaluation passed to the executable.
-* tag: specifies the name and the type of tagged data in the program-under-benchmarking output stream. This data will be collected and stored.
-
+* tags: specifies a list of names of tags. If the program under benchmarking outputs a string 'TAG: value', value will be parsed and stored in output csv. The separating colon in the benchmark output tag line is required. 
