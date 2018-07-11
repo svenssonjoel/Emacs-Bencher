@@ -1,3 +1,4 @@
+;;; bencher.el --- Specify and run benchmarks and collect data 
 
 ;; This file is part of Emacs-Bencher.
 
