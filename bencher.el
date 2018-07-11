@@ -66,6 +66,41 @@
 ;(cancel-timer (car timer-list))
 
 ;; ------------------------------------------------------------
+;; Emacs-Bencher message buffer
+(setq emacs-bencher-messages (get-buffer-create "*Bencher-messages*"))
+(let ((prev-buf (current-buffer)))
+  (set-buffer emacs-bencher-messages)
+  (setq buffer-read-only t)
+  (set-buffer prev-buf))
+
+(defun message-eb (string)
+  "Add a message string to the *Bencher-messages* buffer"
+  (let ((prev-buf (current-buffer)))
+    (set-buffer emacs-bencher-messages)
+    (setq buffer-read-only nil)
+    (goto-char (point-max))
+    (insert (concat string "\n"))
+    (setq buffer-read-only t)
+
+    ;; 
+    (set-window-point
+     (get-buffer-window emacs-bencher-messages 'visible)
+     (point-max))
+    
+    
+    (set-buffer prev-buf)))
+ 
+
+(defun clear-bencher-messages ()
+  "Clear the *Bencher-messages* buffer"
+  (let ((prev-buf (current-buffer)))
+    (set-buffer emacs-bencher-messages)
+    (setq buffer-read-only nil)
+    (setf (buffer-string) "")
+    (setq buffer-read-only t)
+    (set-buffer prev-buf)))
+
+;; ------------------------------------------------------------
 ;; CODE!
 
 (defun read-lines (filePath)
@@ -74,7 +109,7 @@
     (insert-file-contents filePath)
     (split-string (buffer-string) "\n" t)))
 
-(defun insert-bm (str)
+(defun insert-eb (str)
   "Insert Emacs Bencher text into the benchmark output buffer"
   (insert (concat "[EMACS BENCHER] " str)))
 
@@ -169,7 +204,7 @@
 		  (cons bench (parse-benchmarks rest))))
 	    () ; Done!
 	    )
-	(message "Error parsing benchmark"))
+	(message-eb "Error parsing benchmark"))
     ())
   )
 
@@ -196,7 +231,7 @@
  
 (defun tag-parsing-filter (name tags proc string)
   "Filter process output and parse out tag data"
-  (message "running filter")
+  (message-eb "running filter")
   
   (when (buffer-live-p (process-buffer proc))
     (with-current-buffer (process-buffer proc)
@@ -223,7 +258,7 @@
 	       (key-tag-assoc (assoc key tags)))
 	  (if (= (length key-tag-assoc) 2)
 	      (progn
-		(message "starting a tag parse %s" key-val)
+		(message-eb (format "starting a tag parse %s" key-val))
 		(cond
 		 ((string= (car (cdr key-tag-assoc)) "double")
 		  (setq csv-data (cons (cons key val) csv-data)))
@@ -238,8 +273,8 @@
   
 (defun run-benchmarks ()
   "Process enqueued benchmarks"
-  (message "There are %s benchmarks to process"
-	   (length emacs-bencher-scheduled-benchmarks-list))
+  (message-eb (format "There are %s benchmarks to process"
+	   (length emacs-bencher-scheduled-benchmarks-list)))
   (if (not emacs-bencher-scheduled-benchmarks-list)
       (cancel-timer emacs-bencher-benchmark-run-timer) ; Turn off recurring timer
     (if emacs-bencher-running-benchmark
@@ -259,8 +294,7 @@
 
 	  
 	  (set-buffer buf)
-	  (insert-bm (format "Running benchmark: %s\n" (benchmark-run-unit-name bench)))
-	  (message "Running benchmark: %s" (benchmark-run-unit-name bench))
+	  (message-eb (format "Running benchmark: %s" (benchmark-run-unit-name bench)))
 	  (let ((proc (make-process :name (benchmark-run-unit-name bench)
 	    			    :command (benchmark-run-unit-exec-cmd bench)
 				    :buffer (benchmark-run-unit-name bench))))
@@ -271,8 +305,8 @@
 		 (cond
 		  ((equal signal "finished\n")
 		   (progn
-		     (message "Benchmark finished! %s" buf)
-		     (message "collected data: %s" csv-data)
+		     (message-eb (format "Benchmark finished! %s" buf))
+		     (message-eb (format "collected data: %s" csv-data))
 		     (setq emacs-bencher-running-benchmark nil)))))))
 	    (set-process-filter
 	     proc
