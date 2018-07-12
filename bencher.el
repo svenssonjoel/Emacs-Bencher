@@ -41,13 +41,6 @@
 ;; Benchmark "run-unit"
 (cl-defstruct benchmark-run-unit name exec-cmd tags)
 
-;; CSV data container. Two lists, one for default columns
-;; and one for user specified data tags 
-(cl-defstruct csv-format default tags)
-
-;; Default csv header
-(defconst default-csv-header '("Name")) 
-
 ;; ------------------------------------------------------------
 ;; State of Emacs-Bencher (Is it possible to prohibit changes to
 ;; these from the outside?)
@@ -59,7 +52,6 @@
 (defvar emacs-bencher-run-unit-sentinel nil)
 
 (defvar csv-data ()) ; var to collect csv data into (key value) pair list
-					
 
 ;debug
 (setq emacs-bencher-scheduled-benchmarks-list ())
@@ -271,6 +263,48 @@
 	    ()))
 	(add-tag-values (cdr data) tags))))
 
+
+(defun format-csv-string (csv-format csv-data)
+  "using the format list order the contents of csv-data into a string"
+  (if csv-format ;; still elements to process  
+      (let ((hd (car csv-format))
+  	    (tl (cdr csv-format)))
+  	(let ((str (format-csv-string tl csv-data))
+  	      (val (assoc hd csv-data)))
+	  (if val
+	      (if (eq str "")
+		  (cdr val) 
+		(concat (cdr val) (concat ", " str)))
+  	    (concat " ," str))))
+    ""))
+
+
+(defun output-csv-data (bench csv-data)
+  "Write csv-data to a buffer named after the currently processed benchmark"
+  (let* ((buf-name (concat (benchmark-run-unit-name bench) ".csv"))
+	 (buf (get-buffer buf-name))
+	 (csv-format (cons "Name" (benchmark-run-unit-tags bench))))
+    (progn
+      (message-eb "Trying to output csv")
+      (if (not buf)
+	   (progn 
+	     (setq buf (get-buffer-create buf-name))
+	     (let ((csv-header (mapconcat 'identity csv-format ", "  )))
+	       (with-current-buffer buf
+		 (insert (concat csv-header "\n")))))
+	 
+	 
+	(;; buf already exists
+	 ;; TODO: Maybe read the header from the buffer and do sanity check.
+	 let ((csv-line (format-csv-string csv-format csv-data)))
+	   (with-current-buffer buf
+	     (goto-char (point-max))	
+	     (insert (concat csv-line "\n"))))
+	 
+	 ))
+      ))
+       
+		
   
   
 (defun run-benchmarks ()
@@ -302,13 +336,15 @@
 				    :buffer (benchmark-run-unit-name bench))))
 	    (set-process-sentinel
 	     proc
-	     (lexical-let ((buf buf)) ;
+	     (lexical-let ((buf buf)
+			   (bench bench)) ;
 	       (lambda (process signal)
 		 (cond
 		  ((equal signal "finished\n")
 		   (progn
 		     (message-eb (format "Benchmark finished! %s" buf))
 		     (message-eb (format "collected data: %s" csv-data))
+		     (output-csv-data bench csv-data) 
 		     (setq emacs-bencher-running-benchmark nil)))))))
 	    (set-process-filter
 	     proc
@@ -321,7 +357,10 @@
 		  string)))))
 	  )))))
   
-
+;; TODO: Change this into some kind of incremental processing
+;;       of the buffer containing the .bench file.
+;;       process only a single %% - %% enclosed benchmark at a time
+;;       while maintaining knowledge of how far the buffer has been "parsed". 
 (defun do-benchmarks (benches)
   "Enqueue all benchmarks and start the benchmark processing timer func"
   (if emacs-bencher-scheduled-benchmarks-list
