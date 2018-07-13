@@ -53,6 +53,10 @@
 
 (defvar csv-data ()) ; var to collect csv data into (key value) pair list
 
+(defconst time-cmd '("/usr/bin/time"
+		     "-f"
+		     "TimeReal: %e\nTimeUser: %U\nTimeSys: %S\nTimeNCS: %c"))
+
 ;debug
 (setq emacs-bencher-scheduled-benchmarks-list ())
 (setq emacs-bencher-running-benchmark nil)
@@ -332,7 +336,7 @@
 	  (set-buffer buf)
 	  (message-eb (format "Running benchmark: %s" (benchmark-run-unit-name bench)))
 	  (let ((proc (make-process :name (benchmark-run-unit-name bench)
-	    			    :command (benchmark-run-unit-exec-cmd bench)
+	    			    :command (append time-cmd (benchmark-run-unit-exec-cmd bench))
 				    :buffer (benchmark-run-unit-name bench))))
 	    (set-process-sentinel
 	     proc
