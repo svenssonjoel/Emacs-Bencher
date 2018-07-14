@@ -13,7 +13,10 @@ Use Emacs to run benchmarks and collect data
   * Log output buffers.
   * Makefile projects and compile-time argument support.
   * Editing mode for .bench files (with run-benchmark-closeset-to-cursor function and run-all-benchmarks function).
-  * Think of a .bench file format that makes more sense. 
+  * Think of a .bench file format that makes more sense.
+  * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
+  * Potentially the .bench file can specify a fold operation over the N repeats of each benchmark run. 
+  * Add success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
 
 # Goals
 Be able to run sets of performance (or other) tests on executables (to begin with) from inside emacs.
