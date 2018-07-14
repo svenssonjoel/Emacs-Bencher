@@ -1,10 +1,10 @@
 # Emacs-Bencher (Work in progress)
-Use Emacs to run benchmarks and collect data
+Use Emacs to run benchmarks and gather statistics into a csv buffer/file. 
 
 # In progress or semi-working
-  * Parse output buffer for tag-value pairs. Works, but needs work as more tags are added (and built in tags).
+  * Parse output buffer for tag-value pairs. 
   * CSV generation. Works, but needs to be extended with parsing built in tags and additional info.
-  * Learn if it is possible to run stuff on a remote Emacs. As I understand it, it should not be a problem to connect to a remote instance of Emacs. 
+  * Learn if it is possible to run stuff on a remote Emacs. As I understand it, it should not be a problem to connect to a remote instance of Emacs Deamon. 
 
 # TODO
   * Learn to code LISP.
@@ -17,10 +17,6 @@ Use Emacs to run benchmarks and collect data
   * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
   * Potentially the .bench file can specify a fold operation over the N repeats of each benchmark run. 
   * Add success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
-
-# Goals
-Be able to run sets of performance (or other) tests on executables (to begin with) from inside emacs.
-
 
 # .bench file syntax example
 
