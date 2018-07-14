@@ -1,9 +1,7 @@
 %%
-name: test1
+name: sleep
 varying: a  '(1 2 3 4 5 6)
-varying: b  '(1 2)
-executable: ./bench1 a b
-tags: '("TAG0" "TAG1") 
+executable: sleep a
 %%
 name: test2
 varying: a '(1 2 3 4 5 6)

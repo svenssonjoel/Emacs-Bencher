@@ -234,7 +234,11 @@
 				      x)))
 				  ) strs )))
 	(do-substitutions strs-new (cdr vars) (cdr values))))))
- 
+
+;; Problem: There is no guarantee that the "string" is a complete line
+;; Need to buffer up data here and only process once a, in some sense, complete
+;; chunk has arrived.
+;; Sollution: Skip filtering! and just parse through the benchmark output buffer.
 (defun tag-parsing-filter (name tags proc string)
   "Filter process output and parse out tag data"
   (message-eb "running filter")
@@ -266,7 +270,7 @@
 	      (progn
 		(message-eb (format "starting a tag parse %s" key-val))
 		(setq csv-data (cons (cons key val) csv-data)))
-	    ()))
+	    (message-eb (format "No matching tag: %s\n" key))))
 	(add-tag-values (cdr data) tags))))
 
 
@@ -289,7 +293,10 @@
   "Write csv-data to a buffer named after the currently processed benchmark"
   (let* ((buf-name (concat (benchmark-run-unit-name bench) ".csv"))
 	 (buf (get-buffer buf-name))
-	 (csv-format (cons "Name" (benchmark-run-unit-tags bench))))
+	 (csv-format
+	  (append (cons "Name" (benchmark-run-unit-tags bench))
+		  time-tags)
+		  ))
     (progn
       (message-eb "Trying to output csv")
       (if (not buf)
@@ -302,7 +309,7 @@
 	 
 	(;; buf already exists
 	 ;; TODO: Maybe read the header from the buffer and do sanity check.
-	 let ((csv-line (format-csv-string (append csv-format time-tags) csv-data)))
+	 let ((csv-line (format-csv-string csv-format csv-data)))
 	   (with-current-buffer buf
 	     (goto-char (point-max))	
 	     (insert (concat csv-line "\n"))))
@@ -411,7 +418,7 @@
 	     (exec-sym (symbol-name (car exe-args-exprs)))
 	     (exec-full (if (string-prefix-p "./" exec-sym) ;; Expand to full filename (full path) 
 			    (expand-file-name exec-sym)     ;; if a file in pwd is specified in the .bench file. 
-			  (exec-sym)))                      ;; TODO: Alternatively figure out how to make make-process find executables in pwd. 
+			  exec-sym))                      ;; TODO: Alternatively figure out how to make make-process find executables in pwd. 
 	     (exec-cmd (cons exec-full exec-args)))
 
 	(let ((run-unit (make-benchmark-run-unit)))

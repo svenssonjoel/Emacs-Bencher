@@ -17,6 +17,7 @@ Use Emacs to run benchmarks and collect data
   * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
   * Potentially the .bench file can specify a fold operation over the N repeats of each benchmark run. 
   * Add success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
+  * The benchmark output should go to a temp buffer (one per "run") for tag parsing. Rather than using process-filters. 
 
 # Goals
 Be able to run sets of performance (or other) tests on executables (to begin with) from inside emacs.
