@@ -56,6 +56,8 @@
 (defconst time-cmd '("/usr/bin/time"
 		     "-f"
 		     "TimeReal: %e\nTimeUser: %U\nTimeSys: %S\nTimeNCS: %c"))
+(defconst time-tags '("TimeReal" "TimeUser" "TimeSys" "TimeNCS"))
+
 
 ;debug
 (setq emacs-bencher-scheduled-benchmarks-list ())
@@ -249,7 +251,7 @@
   ;; Parse tags and put in csv data
   (let* ((tmp-lines (split-string string "\n" t))
 	 (output-lines (mapcar 'chomp tmp-lines))) ; dont think needed
-    (add-tag-values output-lines tags))
+    (add-tag-values output-lines (append tags time-tags)))
   )
 
 ;; Dont think the types are needed on the tags... remove it 
@@ -300,7 +302,7 @@
 	 
 	(;; buf already exists
 	 ;; TODO: Maybe read the header from the buffer and do sanity check.
-	 let ((csv-line (format-csv-string csv-format csv-data)))
+	 let ((csv-line (format-csv-string (append csv-format time-tags) csv-data)))
 	   (with-current-buffer buf
 	     (goto-char (point-max))	
 	     (insert (concat csv-line "\n"))))
