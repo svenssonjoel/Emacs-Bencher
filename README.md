@@ -4,8 +4,7 @@ Use Emacs to run benchmarks and gather statistics into a csv buffer/file.
 # In progress or semi-working
   * Parse output buffer for tag-value pairs. 
   * CSV generation. Works, but needs to be extended with parsing built in tags and additional info.
-  * Learn if it is possible to run stuff on a remote Emacs. As I understand it, it should not be a problem to connect to a remote instance of Emacs Deamon. 
-
+  
 # TODO
   * Learn to code LISP.
   * Add error checking to many places. 
@@ -17,6 +16,7 @@ Use Emacs to run benchmarks and gather statistics into a csv buffer/file.
   * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
   * Potentially the .bench file can specify a fold operation over the N repeats of each benchmark run. 
   * Add success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
+  * Add functionality for running the benchmarks on a remote machine via emacs deamon.
 
 # .bench file syntax example
 
