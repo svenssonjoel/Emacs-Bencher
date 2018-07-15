@@ -1,6 +1,9 @@
 # Emacs-Bencher (Work in progress)
 Use Emacs to run benchmarks and gather statistics into a csv buffer/file. 
 
+# Inspiration
+The Haskell-based HSBencher tool. (TODO: add link)
+
 # In progress or semi-working
   * Parse output buffer for tag-value pairs. 
   * CSV generation. Works, but needs to be extended with parsing built in tags and additional info.
