@@ -19,7 +19,7 @@ The Haskell-based HSBencher tool. (TODO: add link)
   * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
   * Potentially the .bench file can specify a fold operation over the N repeats of each benchmark run. 
   * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
-  * The benchmark output should go to a temp buffer (one per "run") for tag parsing. Rather than using process-filters. 
+  * DONE: The benchmark output should go to a temp buffer (one per "run") for tag parsing. Rather than using process-filters. 
   * Add functionality for running the benchmarks on a remote machine via emacs deamon.
 
 
@@ -39,3 +39,24 @@ tags: '("TAG0" "TAG1")
 * executable: specifies that an executable called "bench1" should be executed with two arguments
 that range over the lists specified as varying. Each combination of one value from the a list and one from the b constitutes a run. Lisp expressions in this string are evaluated and the result of evaluation passed to the executable.
 * tags: specifies a list of names of tags. If the program under benchmarking outputs a string 'TAG: value', value will be parsed and stored in output csv. The separating colon in the benchmark output tag line is required. 
+
+
+# Example benchmark and csv output
+
+```
+%%
+name: sleep
+varying: a  '(1 2 3 4 5 6)
+executable: sleep a
+%%
+```
+
+```
+Name, TimeReal, TimeUser, TimeSys, TimeNCS
+sleep,  6.00,  0.00,  0.00,  0
+sleep,  5.00,  0.00,  0.00,  0
+sleep,  4.00,  0.00,  0.00,  0
+sleep,  3.00,  0.00,  0.00,  0
+sleep,  2.00,  0.00,  0.00,  0
+sleep,  1.00,  0.00,  0.00,  0
+```
