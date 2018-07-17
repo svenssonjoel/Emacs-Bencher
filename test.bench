@@ -9,3 +9,6 @@ varying: b '(1 2)
 executable: ./bench1 (* a 5) (+ b 10)
 tags: '("TAG0" "TAG1") 
 %%
+name: apa
+executable: sleep 2
+%%

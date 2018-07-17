@@ -58,7 +58,7 @@
 		     "TimeReal: %e\nTimeUser: %U\nTimeSys: %S\nTimeNCS: %c"))
 (defconst time-tags '("TimeReal" "TimeUser" "TimeSys" "TimeNCS"))
 
-(defconst default-tags '("Name"))
+(defconst default-tags '())
 
 (defconst emacs-bencher-messages-buffer-name "*Bencher-messages*")
 
@@ -181,13 +181,7 @@
 			  (tags-list-strs
 			   (eval (car tags-list-expr))))
 		     (setf (benchmark-tags bench) tags-list-strs)))
-		    
-		  ;; (let* ((value-words (split-string value " "))
-		  ;; 	  (tag-name (car value-words))
-		  ;; 	  (tag-type (car (cdr value-words))))
-		  ;;    (setf (benchmark-tags bench)
-		  ;; 	   (cons (list tag-name tag-type)
-		  ;; 		 (benchmark-tags bench))))
+    
 		  ((string= key "varying")
 		   ; Bit ugly that the string is split at spaces and then recombined..
 		   (let* ((value-words (split-string value " "))
@@ -196,8 +190,6 @@
 		     (setf (benchmark-varying bench)
 			   (cons (cons value-variable value-body)
 				 (benchmark-varying bench)))))
-			   ;; (cons (list value-variable value-body)
-			   ;; 	 (benchmark-varying bench)))))
 		  ((string= key "executable")
 		   (setf (benchmark-executable bench) value)))
 	    (parse-benchmark bench (cdr l))))
@@ -240,53 +232,26 @@
 				  ) strs )))
 	(do-substitutions strs-new (cdr vars) (cdr values))))))
 
-;; Problem: There is no guarantee that the "string" is a complete line
-;; Need to buffer up data here and only process once a, in some sense, complete
-;; chunk has arrived.
-;; Sollution: Skip filtering! and just parse through the benchmark output buffer.
-;; (defun tag-parsing-filter (name tags proc string)
-;;   "Filter process output and parse out tag data"
-;;   (message-eb "running filter")
-  
-;;   (when (buffer-live-p (process-buffer proc))
-;;     (with-current-buffer (process-buffer proc)
-;;       (let ((moving (= (point) (process-mark proc))))
-;; 	(save-excursion
-;; 	  ;; Insert the text, advancing the process marker.
-;; 	  (goto-char (process-mark proc))
-;; 	  (insert string)
-;; 	  (set-marker (process-mark proc) (point)))
-;; 	(if moving (goto-char (process-mark proc))))))
-;;   ;; Parse tags and put in csv data
-;;   (let* ((tmp-lines (split-string string "\n" t))
-;; 	 (output-lines (mapcar 'chomp tmp-lines))) ; dont think needed
-;;     (add-tag-values output-lines (append tags time-tags)))
-;;   )
-
 (defun parse-buffer-for-tags (buf tags)
-  "Look for occurances of tags in buffer"
+  "Look for occurances of tags in buffer."
   (let ((buffer-strs
 	 (with-current-buffer buf (split-string (buffer-string) "\n" t))))
     (message-eb (format "BUFFER STR: %s" buffer-strs))
-    (add-tag-values buffer-strs tags () )))
+    (read-tag-values buffer-strs tags () )))
 
-(defun add-tag-values (data tags csv-accum)
-  (message-eb "add-tag-values")
+(defun read-tag-values (data tags csv-accum)
+  "read tag-value pairs from a list of strings."
   (if data
       (let* ((key-val (split-string (car data) ":"))
-	     (key (car key-val))
+	     (key (car key-val))	;
 	     (val (car (cdr key-val)))
 	     (key-tag-assoc (assoc key tags)))
 	(if (member key tags)
 	    (progn
 	      (message-eb (format "starting a tag parse %s" key-val))
 	      (add-tag-values (cdr data) tags  (cons (cons key val) csv-accum)))
-	  (progn
-	    (message-eb (format "No matching tag: %s\n" key))
-	    (add-tag-values (cdr data) tags csv-accum))))
-    (progn
-      (message-eb "end of data")
-       csv-accum)))
+	  (add-tag-values (cdr data) tags csv-accum)))
+    csv-accum))
 
 
 (defun format-csv-string (csv-format csv-data)
@@ -335,7 +300,7 @@
   
   
 (defun run-benchmarks ()
-  "Process enqueued benchmarks"
+  "Process enqueued benchmarks. This function is run on a timer"
   (message-eb (format "There are %s benchmarks to process"
 		      (length emacs-bencher-scheduled-benchmarks-list)))
   
@@ -343,47 +308,50 @@
       (cancel-timer emacs-bencher-benchmark-run-timer) ; Turn off recurring timer
     (if emacs-bencher-running-benchmark
 	() ; Benchmark already in progress just return
-      (progn
-				
-	(setq emacs-bencher-running-benchmark t)  ; A new bench run is starting
-	
-	(let* ((bench (car emacs-bencher-scheduled-benchmarks-list))
-	       (prev-buf (current-buffer))
-	       ;; Set up a fresh buffer for each run
-	       (buf (generate-new-buffer (benchmark-run-unit-name bench))))
-	  (setq emacs-bencher-scheduled-benchmarks-list
-		(cdr emacs-bencher-scheduled-benchmarks-list))
+      (start-next-benchmark))))
 
-	  (setq csv-data ()) ; prepare to collect new csv data				
-	  (setq csv-data (cons (cons "Name"  (benchmark-run-unit-name bench)) csv-data)) ; dotted pair
+(defun start-next-benchmark ()
+  "Starts the next benchmark in the queue."
+
+  (setq emacs-bencher-running-benchmark t)  ; A new bench run is starting
+	
+  (let* ((bench (car emacs-bencher-scheduled-benchmarks-list))
+	 (prev-buf (current-buffer))
+	 ;; Set up a fresh buffer for each run
+	 (buf (generate-new-buffer (benchmark-run-unit-name bench))))
+    (setq emacs-bencher-scheduled-benchmarks-list
+	  (cdr emacs-bencher-scheduled-benchmarks-list))
+
+    (setq csv-data ()) ; prepare to collect new csv data				
+    (setq csv-data (cons (cons "Name"  (benchmark-run-unit-name bench)) csv-data)) ; dotted pair
 
 	  
-	  (set-buffer buf)
-	  (message-eb (format "Running benchmark: %s" (benchmark-run-unit-name bench)))
-	  (let ((proc (make-process :name (benchmark-run-unit-name bench)
-	    			    :command (append time-cmd (benchmark-run-unit-exec-cmd bench))
-				    :buffer buf)))
-	    (set-process-sentinel
-	     proc
-	     (lexical-let ((buf buf)
-			   (bench bench)) ;
-	       (lambda (process signal)
-		 (cond
-		  ((equal signal "finished\n")
-		   (progn
-		     (setq csv-data
-			   (append csv-data (parse-buffer-for-tags
-					     buf
-					     (append (benchmark-run-unit-tags bench)
-						     time-tags))))
-		     (message-eb (format "Benchmark finished! %s" buf))
-		     (message-eb (format "collected data: %s" csv-data))
-		     (output-csv-data bench csv-data) 
-		     (setq emacs-bencher-running-benchmark nil)
-		     ;; Destroy benchmark run output buffer.
-		     ;; Todo: Maybe add storing of the buffer to a log file
-		     (kill-buffer buf))))))))
-	  )))))
+    (set-buffer buf)
+    (message-eb (format "Running benchmark: %s" (benchmark-run-unit-name bench)))
+    (let ((proc (make-process :name (benchmark-run-unit-name bench)
+			      :command (append time-cmd (benchmark-run-unit-exec-cmd bench))
+			      :buffer buf)))
+      (set-process-sentinel
+       proc
+       (lexical-let ((buf buf)
+		     (bench bench)) ;
+	 (lambda (process signal)
+	   (cond
+	    ((equal signal "finished\n")
+	     (progn
+	       (setq csv-data
+		     (append csv-data (parse-buffer-for-tags
+				       buf
+				       (append (benchmark-run-unit-tags bench)
+					       time-tags))))
+	       (message-eb (format "Benchmark finished! %s" buf))
+	       (message-eb (format "collected data: %s" csv-data))
+	       (output-csv-data bench csv-data) 
+	       (setq emacs-bencher-running-benchmark nil)
+	       ;; Destroy benchmark run output buffer.
+	       ;; Todo: Maybe add storing of the buffer to a log file
+	       (kill-buffer buf))))))))
+    ))
   
 ;; TODO: Change this into some kind of incremental processing
 ;;       of the buffer containing the .bench file.
@@ -413,7 +381,8 @@
 
 (defun enqueue-benches (bench)
   "Expand the varying space of the benchmark and enqueue each instance"
-  ; Todo add a case for the bench without varying... 
+  ;; Todo add a case for the bench without varying... (No such case is needed!) 
+  
   (let* ((varying-strs
 	  ;; Woa this is ugly. Fix it 
 	  (mapcar (lambda (x) (mapcar 'number-to-string x))
