@@ -36,10 +36,10 @@
 ;; data structures 
 
 ;; Benchmark struct
-(cl-defstruct benchmark name executable varying tags)
+(cl-defstruct benchmark name csv executable varying tags)
 
 ;; Benchmark "run-unit"
-(cl-defstruct benchmark-run-unit name exec-cmd tags)
+(cl-defstruct benchmark-run-unit name csv exec-cmd tags)
 
 ;; ------------------------------------------------------------
 ;; State of Emacs-Bencher (Is it possible to prohibit changes to
@@ -164,18 +164,24 @@
 	(funcall fun a b)))))
 
 
-;; TODO: Break up into small functions. Just dispatch from here. 
-;; TODO: Add error checking (what if there is no car (cdr x) ?? (faulty .bench file)
+(defun parse-key-val (str)
+  "Parse a colon separation key: value pair from text into a dotted pair. Return nil on error"
+  (let ((tmp (split-string str ":")))
+    (if (or (> (length tmp) 2)
+	    (< (length tmp) 2))
+	nil
+      (cons (chomp (car tmp)) (chomp (car (cdr tmp)))))))
 
 (defun parse-benchmark (bench l)
   "Parse a single benchmark until a line with %% is found"
   (if (not l)
       ()
     (if (not (string-prefix-p "%%" (car l)))
-	(let ((ps (split-string (car l) ":")))
+	(let ((ps (parse-key-val (car l))))
 	  (let ((key (car ps))
-		(value (chomp (car (cdr ps))))) ; for simple cases 
+		(value (cdr ps))) ; for simple cases 
 	    (cond ((string= key "name") (setf (benchmark-name bench) value))
+		  ((string= key "csv") (setf (benchmark-csv bench) value))
 		  ((string= key "tags")
 		   (let* ((tags-list-expr (read-from-string value))
 			  (tags-list-strs
@@ -249,8 +255,8 @@
 	(if (member key tags)
 	    (progn
 	      (message-eb (format "starting a tag parse %s" key-val))
-	      (add-tag-values (cdr data) tags  (cons (cons key val) csv-accum)))
-	  (add-tag-values (cdr data) tags csv-accum)))
+	      (read-tag-values (cdr data) tags  (cons (cons key val) csv-accum)))
+	  (read-tag-values (cdr data) tags csv-accum)))
     csv-accum))
 
 
@@ -271,7 +277,7 @@
 
 (defun output-csv-data (bench csv-data)
   "Write csv-data to a buffer named after the currently processed benchmark"
-  (let* ((buf-name (concat (benchmark-run-unit-name bench) ".csv"))
+  (let* ((buf-name (benchmark-run-unit-csv bench))
 	 (buf (get-buffer buf-name))
 	 (csv-format
 	  (append (cons "Name" (benchmark-run-unit-tags bench))
@@ -407,6 +413,7 @@
 
 	(let ((run-unit (make-benchmark-run-unit)))
 	  (setf (benchmark-run-unit-name run-unit) (benchmark-name bench))
+	  (setf (benchmark-run-unit-csv run-unit) (benchmark-csv bench))
 	  (setf (benchmark-run-unit-exec-cmd run-unit) exec-cmd)
 	  (setf (benchmark-run-unit-tags run-unit) (benchmark-tags bench))
 	  (setq emacs-bencher-scheduled-benchmarks-list
