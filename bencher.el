@@ -413,7 +413,9 @@
 
 	(let ((run-unit (make-benchmark-run-unit)))
 	  (setf (benchmark-run-unit-name run-unit) (benchmark-name bench))
-	  (setf (benchmark-run-unit-csv run-unit) (benchmark-csv bench))
+	  (if (benchmark-csv bench)	      
+	      (setf (benchmark-run-unit-csv run-unit) (benchmark-csv bench))
+	    (setf (benchmark-run-unit-csv run-unit) (concat (benchmark-name bench) ".csv")))
 	  (setf (benchmark-run-unit-exec-cmd run-unit) exec-cmd)
 	  (setf (benchmark-run-unit-tags run-unit) (benchmark-tags bench))
 	  (setq emacs-bencher-scheduled-benchmarks-list

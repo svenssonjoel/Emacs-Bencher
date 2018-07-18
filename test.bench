@@ -12,6 +12,6 @@ executable: ./bench1 (* a 5) (+ b 10)
 tags: '("TAG0" "TAG1") 
 %%
 name: apa
-csv: sleep.csv
+csv: test2.csv
 executable: sleep 10
 %%
