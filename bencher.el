@@ -40,11 +40,13 @@
 
 ;; Benchmark "run-unit"
 (cl-defstruct benchmark-run-unit
-  name      ;; Benchmark name
-  csv       ;; CSV output buffer name 
-  exec-cmd  ;; Binary to run 
-  tags      ;; Tags of interest to this run-unit
-  csv-data) ;; Collected csv-data list of key-value pairs
+  name       ;; Benchmark name
+  csv        ;; CSV output buffer name 
+  exec-cmd   ;; Binary to run 
+  tags       ;; Tags of interest to this run-unit
+  csv-header ;; TODO: Come up with better names (This is only the non-tags part of the header) 
+  csv-data   ;; Generated CSV data
+  csv-data-tags) ;; Collected CSV data (from tags) list of key-value pairs
 
 ;; ------------------------------------------------------------
 ;; State of Emacs-Bencher (Is it possible to prohibit changes to
@@ -280,15 +282,17 @@
     ""))
 
 
-(defun output-csv-data (bench csv-data)
+(defun output-csv-data (bench)
   "Write csv-data to a buffer named after the currently processed benchmark"
   (let* ((buf-name (benchmark-run-unit-csv bench))
 	 (buf (get-buffer buf-name))
+	 (csv-data (append (benchmark-run-unit-csv-data bench)
+			   (benchmark-run-unit-csv-data-tags bench)))
 	 (csv-format
-	  (append (cons "Name" (benchmark-run-unit-tags bench))
-		  time-tags)
-		  ))
-    (progn
+	  (append (benchmark-run-unit-csv-header bench)
+		  (benchmark-run-unit-tags bench)
+		  time-tags))) ;; TODO: Should time-tags be dealt with similarly to csv header? Maybe yes, but then priont order should be configurable. 
+		  
       (message-eb "Trying to output csv")
       (if (not buf)
 	   (progn 
@@ -304,9 +308,9 @@
       (let ((csv-line (format-csv-string csv-format csv-data)))
 	(with-current-buffer buf
 	  (goto-char (point-max))	
-	  (insert (concat csv-line "\n"))))
-      )))
-       
+	  (insert (concat csv-line "\n"))))))
+      
+            
 		
   
   
@@ -334,9 +338,12 @@
 	  (cdr emacs-bencher-scheduled-benchmarks-list))
     
     ;; Add information to accumulated CSV data
+    ;; TODO: Turn this into a function 
     (setf (benchmark-run-unit-csv-data bench)
 	  (cons (cons "Name"  (benchmark-run-unit-name bench)) ;; dotted pair
-		(benchmark-run-unit-csv-data bench))) 
+		(benchmark-run-unit-csv-data bench)))
+    (setf (benchmark-run-unit-csv-header bench)
+	  (cons "Name" (benchmark-run-unit-csv-header bench)))
 	  
     (set-buffer buf)
     (message-eb (format "Running benchmark: %s" (benchmark-run-unit-name bench)))
@@ -357,9 +364,10 @@
 		 (message-eb (format "Benchmark finished! %s" buf))
 		 (message-eb (format "collected data: %s" collected-csv-data))
 		 ;; Add collected csv data to the run-unit (dont know why yet...) 
-		 (setf (benchmark-run-unit-csv-data bench)
-		       (append (benchmark-run-unit-csv-data bench) collected-csv-data))
-		 (output-csv-data bench (benchmark-run-unit-csv-data bench)) 
+		 (setf (benchmark-run-unit-csv-data-tags bench) collected-csv-data)
+
+		 ;; output both "generated" CSV and collected CSV to buffer
+		 (output-csv-data bench)
 		 (setq emacs-bencher-running-benchmark nil)
 		 ;; Destroy benchmark run output buffer.
 		 ;; Todo: Maybe add storing of the buffer to a log file
