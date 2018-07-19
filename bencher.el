@@ -39,7 +39,12 @@
 (cl-defstruct benchmark name csv executable varying tags)
 
 ;; Benchmark "run-unit"
-(cl-defstruct benchmark-run-unit name csv exec-cmd tags)
+(cl-defstruct benchmark-run-unit
+  name      ;; Benchmark name
+  csv       ;; CSV output buffer name 
+  exec-cmd  ;; Binary to run 
+  tags      ;; Tags of interest to this run-unit
+  csv-data) ;; Collected csv-data list of key-value pairs
 
 ;; ------------------------------------------------------------
 ;; State of Emacs-Bencher (Is it possible to prohibit changes to
@@ -51,7 +56,7 @@
 
 (defvar emacs-bencher-run-unit-sentinel nil)
 
-(defvar csv-data ()) ; var to collect csv data into (key value) pair list
+;;(defvar csv-data ()) ; var to collect csv data into (key value) pair list
 
 (defconst time-cmd '("/usr/bin/time"
 		     "-f"
@@ -327,10 +332,11 @@
 	 (buf (generate-new-buffer (benchmark-run-unit-name bench))))
     (setq emacs-bencher-scheduled-benchmarks-list
 	  (cdr emacs-bencher-scheduled-benchmarks-list))
-
-    (setq csv-data ()) ; prepare to collect new csv data				
-    (setq csv-data (cons (cons "Name"  (benchmark-run-unit-name bench)) csv-data)) ; dotted pair
-
+    
+    ;; Add information to accumulated CSV data
+    (setf (benchmark-run-unit-csv-data bench)
+	  (cons (cons "Name"  (benchmark-run-unit-name bench)) ;; dotted pair
+		(benchmark-run-unit-csv-data bench))) 
 	  
     (set-buffer buf)
     (message-eb (format "Running benchmark: %s" (benchmark-run-unit-name bench)))
@@ -344,19 +350,20 @@
 	 (lambda (process signal)
 	   (cond
 	    ((equal signal "finished\n")
-	     (progn
-	       (setq csv-data
-		     (append csv-data (parse-buffer-for-tags
-				       buf
-				       (append (benchmark-run-unit-tags bench)
-					       time-tags))))
-	       (message-eb (format "Benchmark finished! %s" buf))
-	       (message-eb (format "collected data: %s" csv-data))
-	       (output-csv-data bench csv-data) 
-	       (setq emacs-bencher-running-benchmark nil)
-	       ;; Destroy benchmark run output buffer.
-	       ;; Todo: Maybe add storing of the buffer to a log file
-	       (kill-buffer buf))))))))
+	       (let ((collected-csv-data (parse-buffer-for-tags
+					  buf
+					  (append (benchmark-run-unit-tags bench)
+						  time-tags))))
+		 (message-eb (format "Benchmark finished! %s" buf))
+		 (message-eb (format "collected data: %s" collected-csv-data))
+		 ;; Add collected csv data to the run-unit (dont know why yet...) 
+		 (setf (benchmark-run-unit-csv-data bench)
+		       (append (benchmark-run-unit-csv-data bench) collected-csv-data))
+		 (output-csv-data bench (benchmark-run-unit-csv-data bench)) 
+		 (setq emacs-bencher-running-benchmark nil)
+		 ;; Destroy benchmark run output buffer.
+		 ;; Todo: Maybe add storing of the buffer to a log file
+		 (kill-buffer buf))))))))
     ))
   
 ;; TODO: Change this into some kind of incremental processing
