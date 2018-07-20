@@ -38,10 +38,19 @@
 ;; Benchmark struct
 (cl-defstruct benchmark name csv executable varying tags)
 
+;; --- In progress --- 
+;; Information needed to run an executable
+(cl-defstruct bt-executable name args)
+
+;; Information needed to build and run a makefile based project
+(cl-defstruct bt-makefile-project make-args run-args)
+;; -------------------
+
 ;; Benchmark "run-unit"
 (cl-defstruct benchmark-run-unit
   name       ;; Benchmark name
-  csv        ;; CSV output buffer name 
+  csv        ;; CSV output buffer name
+  exec-args  ;; argument list including 
   exec-cmd   ;; Binary to run 
   tags       ;; Tags of interest to this run-unit
   csv-header ;; TODO: Come up with better names (This is only the non-tags part of the header) 
@@ -57,8 +66,6 @@
 (defvar emacs-bencher-benchmark-run-timer nil)
 
 (defvar emacs-bencher-run-unit-sentinel nil)
-
-;;(defvar csv-data ()) ; var to collect csv data into (key value) pair list
 
 (defconst time-cmd '("/usr/bin/time"
 		     "-f"
