@@ -46,11 +46,13 @@
 (cl-defstruct bt-makefile-project make-args run-args)
 ;; -------------------
 
+(cl-defstruct csv-format name args tags) ;; something like this ? 
+
 ;; Benchmark "run-unit"
 (cl-defstruct benchmark-run-unit
   name       ;; Benchmark name
   csv        ;; CSV output buffer name
-  exec-args  ;; argument list including 
+  exec-args  ;; argument list (var, value) pairs 
   exec-cmd   ;; Binary to run 
   tags       ;; Tags of interest to this run-unit
   csv-header ;; TODO: Come up with better names (This is only the non-tags part of the header) 
@@ -58,8 +60,7 @@
   csv-data-tags) ;; Collected CSV data (from tags) list of key-value pairs
 
 ;; ------------------------------------------------------------
-;; State of Emacs-Bencher (Is it possible to prohibit changes to
-;; these from the outside?)
+;; State of Emacs-Bencher 
 
 (defvar emacs-bencher-running-benchmark nil)
 (defvar emacs-bencher-scheduled-benchmarks-list ()) ; benches to run
@@ -76,11 +77,9 @@
 
 (defconst emacs-bencher-messages-buffer-name "*Bencher-messages*")
 
-
 ;debug
 (setq emacs-bencher-scheduled-benchmarks-list ())
 (setq emacs-bencher-running-benchmark nil)
-;(cancel-timer (car timer-list))
 
 ;; ------------------------------------------------------------
 ;; Emacs-Bencher message buffer
@@ -232,11 +231,12 @@
   )
 
 
-(defun do-substitutions (strs vars values)
-  "Substitues variables from list vars with values from list values in list of strings"
-  (if (not vars) strs
-    (let* ((var (car vars)) ; (concat "%" (car vars)))
-	   (val (format " %s " (car values))))
+(defun do-substitutions (strs var-vals)
+  "Substitues variables with values in list of strings"
+  (if (not var-vals) strs
+    (let* ((var-val (car var-vals))
+	   (var (car var-val)) 
+	   (val (format " %s " (cdr var-val))))
       (let ((strs-new (mapcar (lambda (x)
 				(if (string= var x)
 				    var
@@ -250,7 +250,7 @@
 					(replace-match val nil nil x)
 				      x)))
 				  ) strs )))
-	(do-substitutions strs-new (cdr vars) (cdr values))))))
+	(do-substitutions strs-new (cdr var-vals))))))
 
 (defun parse-buffer-for-tags (buf tags)
   "Look for occurances of tags in buffer."
@@ -412,7 +412,7 @@
   ;; Todo add a case for the bench without varying... (No such case is needed!) 
   
   (let* ((varying-strs
-	  ;; Woa this is ugly. Fix it 
+	
 	  (mapcar (lambda (x) (mapcar 'number-to-string x))
 		  (mapcar 'eval (mapcar 'car (mapcar 'read-from-string
 			      (mapcar 'cdr (benchmark-varying bench)))))))
@@ -422,11 +422,12 @@
 	  (all-selections varying-strs)))
     (dolist (elt varying-selections ())
       (let* ((exec-cmd-orig (benchmark-executable bench))
-	     (exec-cmd-str (car (do-substitutions (list exec-cmd-orig)
-						  varying-vars elt)))
+	     (exec-cmd-str (car (do-substitutions (list exec-cmd-orig) (mapcar* #'cons varying-vars elt))))
 	     (exe-args-exprs (read-expressions-from-string exec-cmd-str))
 	     (exe-args-evaled (mapcar 'eval (cdr exe-args-exprs)))
 	     (exec-args (mapcar 'number-to-string exe-args-evaled))
+	     ;; TODO: Figure out why the reverse make sense below !!! 
+	     (arg-bindings (mapcar* #'cons (reverse varying-vars) exec-args))	     
 	     (exec-sym (symbol-name (car exe-args-exprs)))
 	     (exec-full (if (string-prefix-p "./" exec-sym) ;; Expand to full filename (full path) 
 			    (expand-file-name exec-sym)     ;; if a file in pwd is specified in the .bench file. 
@@ -438,6 +439,14 @@
 	  (if (benchmark-csv bench)	      
 	      (setf (benchmark-run-unit-csv run-unit) (benchmark-csv bench))
 	    (setf (benchmark-run-unit-csv run-unit) (concat (benchmark-name bench) ".csv")))
+	  (setf (benchmark-run-unit-exec-args run-unit) arg-bindings)
+	  (setf (benchmark-run-unit-csv-header run-unit)
+		(append varying-vars (benchmark-run-unit-csv-header run-unit)))
+	  (setf (benchmark-run-unit-csv-data run-unit)
+		(append arg-bindings (benchmark-run-unit-csv-data run-unit)))
+	  ;; (message-eb (format "%s\n" (benchmark-run-unit-exec-args run-unit)))
+	  ;; (message-eb (format "%s\n" (benchmark-run-unit-csv-header run-unit)))
+	  ;; (message-eb (format "%s\n" (benchmark-run-unit-csv-data run-unit)))	  	  
 	  (setf (benchmark-run-unit-exec-cmd run-unit) exec-cmd)
 	  (setf (benchmark-run-unit-tags run-unit) (benchmark-tags bench))
 	  (setq emacs-bencher-scheduled-benchmarks-list
