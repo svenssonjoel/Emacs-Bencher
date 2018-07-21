@@ -178,7 +178,7 @@
 
 
 (defun parse-key-val (str)
-  "Parse a colon separation key: value pair from text into a dotted pair. Return nil on error"
+  "Parse a colon separated key: value pair from text into a dotted pair. Return nil on error"
   (let ((tmp (split-string str ":")))
     (if (or (> (length tmp) 2)
 	    (< (length tmp) 2))
@@ -262,9 +262,9 @@
 (defun read-tag-values (data tags csv-accum)
   "read tag-value pairs from a list of strings."
   (if data
-      (let* ((key-val (split-string (car data) ":"))
-	     (key (car key-val))	;
-	     (val (car (cdr key-val)))
+      (let* ((key-val (parse-key-val (car data)))
+	     (key (car key-val))       
+	     (val (cdr key-val))
 	     (key-tag-assoc (assoc key tags)))
 	(if (member key tags)
 	    (progn
@@ -441,7 +441,7 @@
 	    (setf (benchmark-run-unit-csv run-unit) (concat (benchmark-name bench) ".csv")))
 	  (setf (benchmark-run-unit-exec-args run-unit) arg-bindings)
 	  (setf (benchmark-run-unit-csv-header run-unit)
-		(append varying-vars (benchmark-run-unit-csv-header run-unit)))
+		(append (reverse varying-vars) (benchmark-run-unit-csv-header run-unit)))
 	  (setf (benchmark-run-unit-csv-data run-unit)
 		(append arg-bindings (benchmark-run-unit-csv-data run-unit)))
 	  ;; (message-eb (format "%s\n" (benchmark-run-unit-exec-args run-unit)))
