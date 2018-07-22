@@ -417,7 +417,7 @@
 		  (mapcar 'eval (mapcar 'car (mapcar 'read-from-string
 			      (mapcar 'cdr (benchmark-varying bench)))))))
 	 (varying-vars
-	   (mapcar 'car (benchmark-varying bench)))
+	  (mapcar 'car (benchmark-varying bench)))
 	 (varying-selections
 	  (all-selections varying-strs)))
     (dolist (elt varying-selections ())
@@ -426,8 +426,7 @@
 	     (exe-args-exprs (read-expressions-from-string exec-cmd-str))
 	     (exe-args-evaled (mapcar 'eval (cdr exe-args-exprs)))
 	     (exec-args (mapcar 'number-to-string exe-args-evaled))
-	     ;; TODO: Figure out why the reverse make sense below !!! 
-	     (arg-bindings (mapcar* #'cons (reverse varying-vars) exec-args))	     
+	     (arg-bindings (mapcar* #'cons varying-vars exec-args))	     
 	     (exec-sym (symbol-name (car exe-args-exprs)))
 	     (exec-full (if (string-prefix-p "./" exec-sym) ;; Expand to full filename (full path) 
 			    (expand-file-name exec-sym)     ;; if a file in pwd is specified in the .bench file. 
@@ -441,7 +440,7 @@
 	    (setf (benchmark-run-unit-csv run-unit) (concat (benchmark-name bench) ".csv")))
 	  (setf (benchmark-run-unit-exec-args run-unit) arg-bindings)
 	  (setf (benchmark-run-unit-csv-header run-unit)
-		(append (reverse varying-vars) (benchmark-run-unit-csv-header run-unit)))
+		(append  varying-vars (benchmark-run-unit-csv-header run-unit)))
 	  (setf (benchmark-run-unit-csv-data run-unit)
 		(append arg-bindings (benchmark-run-unit-csv-data run-unit)))
 	  ;; (message-eb (format "%s\n" (benchmark-run-unit-exec-args run-unit)))
