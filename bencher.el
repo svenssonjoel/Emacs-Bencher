@@ -438,24 +438,50 @@
 			  exec-sym))                      ;; TODO: Alternatively figure out how to make make-process find executables in pwd. 
 	     (exec-cmd (cons exec-full exec-args)))
 
-	(let ((run-unit (make-benchmark-run-unit)))
+	(let ((run-unit (make-benchmark-run-unit))
+	      (args-csv (generate-exec-args-csv exec-args)))
 	  (setf (benchmark-run-unit-name run-unit) (benchmark-name bench))
 	  (if (benchmark-csv bench)	      
 	      (setf (benchmark-run-unit-csv run-unit) (benchmark-csv bench))
 	    (setf (benchmark-run-unit-csv run-unit) (concat (benchmark-name bench) ".csv")))
 	  (setf (benchmark-run-unit-exec-args run-unit) arg-bindings)
-	  (setf (benchmark-run-unit-csv-header run-unit)
-		(append  varying-vars (benchmark-run-unit-csv-header run-unit)))
-	  (setf (benchmark-run-unit-csv-data run-unit)
-		(append arg-bindings (benchmark-run-unit-csv-data run-unit)))
-	  ;; (message-eb (format "%s\n" (benchmark-run-unit-exec-args run-unit)))
-	  ;; (message-eb (format "%s\n" (benchmark-run-unit-csv-header run-unit)))
-	  ;; (message-eb (format "%s\n" (benchmark-run-unit-csv-data run-unit)))	  	  
+	  
+	  (append-csv-info run-unit args-csv)
+  	  
 	  (setf (benchmark-run-unit-exec-cmd run-unit) exec-cmd)
 	  (setf (benchmark-run-unit-tags run-unit) (benchmark-tags bench))
 	  (setq emacs-bencher-scheduled-benchmarks-list
 		(cons run-unit emacs-bencher-scheduled-benchmarks-list)))))))
 
+;; ------------------------------------------------------------
+(defun generate-exec-args-csv (exec-args)
+  "list of arguments to list of pairs (argN . argVal) and the header information"
+  (let* ((n (length exec-args))
+	 (header (mapcar (lambda (x) (concat "Arg" (number-to-string x)))
+			 (number-sequence 0 (- n 1))))
+	 (csv-data (mapcar* #'cons 
+			    header
+			    exec-args)))
+    (cons header csv-data)))
+
+(defmacro append-csv-info (run-unit csv-info)
+  "Add information to csv header and accumulated csv data"
+  `(progn (append-csv-header ,run-unit (car ,csv-info))
+	  (append-csv-data   ,run-unit (cdr ,csv-info))))
+
+(defmacro append-csv-header (run-unit csv-header)
+  "Append a list of keys to the csv header line associated with this benchmark"
+  `(setf (benchmark-run-unit-csv-header ,run-unit)
+	 (append ,csv-header (benchmark-run-unit-csv-header ,run-unit))))
+
+(defmacro append-csv-data (run-unit csv-data)
+  "Append a list of key-value pairs to the csv data associated with this benchmark"
+  `(setf (benchmark-run-unit-csv-data ,run-unit)
+	 (append ,csv-data (benchmark-run-unit-csv-data ,run-unit))))
+
+
+
+;; ------------------------------------------------------------
 ; Debug
 (defun a ()
   "testing"
