@@ -20,6 +20,11 @@
 (require 'seq)
 (require 'cl)
 
+;; TODOS:
+;; The args should be listed as ARG0, ARG1 etc in the CSV. 
+;; The variable bindings maybe should occur in the CSV as well.
+;; But the way it is now is not correct. 
+
 
 ;; ------------------------------------------------------------
 ;; Version
@@ -423,7 +428,7 @@
     (dolist (elt varying-selections ())
       (let* ((exec-cmd-orig (benchmark-executable bench))
 	     (exec-cmd-str (car (do-substitutions (list exec-cmd-orig) (mapcar* #'cons varying-vars elt))))
-	     (exe-args-exprs (read-expressions-from-string exec-cmd-str))
+	     (exe-args-exprs (read-expressions-from-string exec-cmd-str)) 
 	     (exe-args-evaled (mapcar 'eval (cdr exe-args-exprs)))
 	     (exec-args (mapcar 'number-to-string exe-args-evaled))
 	     (arg-bindings (mapcar* #'cons varying-vars exec-args))	     
