@@ -20,10 +20,8 @@
 (require 'seq)
 (require 'cl)
 
-;; TODOS:
-;; The args should be listed as ARG0, ARG1 etc in the CSV. 
-;; The variable bindings maybe should occur in the CSV as well.
-;; But the way it is now is not correct. 
+;; Todo: Add returning of success or failure from run-benchmarks
+;;       and report failure somehow. 
 
 
 ;; ------------------------------------------------------------
@@ -168,7 +166,7 @@
     (funcall fun 0)))
 
 (defun all-selections (l)
-  "generate all possible selections of one element per list from list of list"
+  "generate all possible selections of one element per list from a list of lists"
   (if (not l) '(()) ; nothing to select from
     (let* ((a (car l))
 	   (b (all-selections (cdr l))))
@@ -326,7 +324,7 @@
 		
   
   
-(defun run-benchmarks ()
+(defun do-run-benchmarks ()
   "Process enqueued benchmarks. This function is run on a timer"
   (message-eb (format "There are %s benchmarks to process"
 		      (length emacs-bencher-scheduled-benchmarks-list)))
@@ -401,7 +399,7 @@
 	      (cancel-timer emacs-bencher-benchmark-run-timer)
 	    ())	
 	  (setq emacs-bencher-benchmark-run-timer
-		(run-at-time t 1 #'run-benchmarks))) 
+		(run-at-time t 1 #'do-run-benchmarks))) 
       (message "Error: No benchmarks to run"))))
 
 (defun enqueue-all-benches (benches)
@@ -480,12 +478,33 @@
 	 (append ,csv-data (benchmark-run-unit-csv-data ,run-unit))))
 
 
+;; ------------------------------------------------------------
+;; User interface
+(defun run-benchmarks-buffer ( &optional buffer)
+  "Run benchmarks in buffer, no argument means current-buffer"
+  (interactive "bSpecify benchmarks buffer:")
+  (cond ((bufferp buffer-or-file)
+	 (with-current-buffer buffer
+	   (let ((str (buffer-string)))
+	     (do-benchmarks (parse-benchmarks (split-string str "\n"))))))
+	(t
+	 (let ((str (buffer-string)))
+	   (do-benchmarks (parse-benchmarks (split-string str "\n")))))))
+	
+(defun run-benchmarks-file ( &optional filename)
+  "Run benchmarks from file" 
+  (interactive "FBenchmarks file:")
+  (do-benchmarks (parse-benchmarks (read-lines filename))))
+
+	       
+
+
 
 ;; ------------------------------------------------------------
 ; Debug
 (defun a ()
   "testing"
-  (run-benchmarks (parse-benchmarks (read-lines "./test.bench"))))
+  (do-run-benchmarks (parse-benchmarks (read-lines "./test.bench"))))
 
 (defun b ()
   "testing"
