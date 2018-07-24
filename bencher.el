@@ -522,6 +522,12 @@
   (bencher-do-benchmarks
    (bencher-parse-benchmarks
     (bencher-read-lines "./test.bench"))))
+
+(defun d ()
+  "testing"
+  (mapcar #'benchmark-p (bencher-parse-benchmarks
+			 (bencher-read-lines "./test.bench"))))
+
   
 
 
