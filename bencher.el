@@ -1,4 +1,8 @@
-;;; bencher.el --- Specify and run benchmarks and collect data 
+;; bencher.el --- Specify and run benchmarks and collect data 
+
+;; Copyright (C) 2018 
+;; Author: Joel Svensson <svenssonjoel@yahoo.se> 
+;; Version: 0.0.0
 
 ;; This file is part of Emacs-Bencher.
 
@@ -15,7 +19,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with Emacs-Bencher.  If not, see <https://www.gnu.org/licenses/>.
 
-;; Joel Svensson 2018
 
 (require 'seq)
 (require 'cl)
@@ -26,14 +29,8 @@
 
 ;; ------------------------------------------------------------
 ;; Version
+(defconst bencher-version "0.0.0")
 
-(defconst bencher-version '(0 0 0))
-(defun bencher-version-string ()
-  "Returns version string"
-  (let ((a (car bencher-version))
-	(b (car (cdr bencher-version)))
-	(c (car (cdr (cdr bencher-version)))))
-    (format "%s.%s.%s" a b c)))
 
 ;; ------------------------------------------------------------
 ;; data structures 
@@ -531,4 +528,5 @@
   
 
 
-
+;; ------------------------------------------------------------
+(provide 'bencher)
