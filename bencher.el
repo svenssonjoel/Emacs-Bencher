@@ -378,7 +378,12 @@
 		 (setq bencher-running-benchmark nil)
 		 ;; Destroy benchmark run output buffer.
 		 ;; Todo: Maybe add storing of the buffer to a log file
-		 (kill-buffer buf))))))))))
+		 (kill-buffer buf)))
+	    ;; Capture all failure cases.
+	    ;; TODO: discriminate between them. 
+	    (t (bencher-message "Benchmark failed!")
+	       (setq bencher-running-benchmark nil)
+	       (kill-buffer buf)))))))))
   
 ;; TODO: Change this into some kind of incremental processing
 ;;       of the buffer containing the .bench file.
@@ -478,7 +483,7 @@
 (defun bencher-run-benchmarks-buffer ( &optional buffer)
   "Run benchmarks in buffer, no argument means current-buffer"
   (interactive "bSpecify benchmarks buffer:")
-  (cond ((bufferp buffer-or-file)
+  (cond ((bufferp buffer)
 	 (with-current-buffer buffer
 	   (let ((str (buffer-string)))
 	     (bencher-do-benchmarks
@@ -493,40 +498,9 @@
 (defun bencher-run-benchmarks-file ( &optional filename)
   "Run benchmarks from file" 
   (interactive "FBenchmarks file:")
-  (bencher-do-benchmarks
-   (bencher-parse-benchmarks
-    (bencher-read-lines filename))))
-
-	       
-
-
-
-;; ------------------------------------------------------------
-; Debug
-(defun a ()
-  "testing"
-  (bencher-do-run-benchmarks
-   (bencher-parse-benchmarks
-    (bencher-read-lines "./test.bench"))))
-
-(defun b ()
-  "testing"
-  (bencher-parse-benchmarks
-   (bencher-read-lines "./test.bench")))
-
-(defun c ()
-  "testing"
-  (bencher-do-benchmarks
-   (bencher-parse-benchmarks
-    (bencher-read-lines "./test.bench"))))
-
-(defun d ()
-  "testing"
-  (mapcar #'benchmark-p (bencher-parse-benchmarks
-			 (bencher-read-lines "./test.bench"))))
-
-  
-
+  (let ((buf (find-file filename)))
+    (bencher-run-benchmarks-buffer buf)
+    (kill-buffer buf)))
 
 ;; ------------------------------------------------------------
 (provide 'bencher)
