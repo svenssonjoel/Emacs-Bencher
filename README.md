@@ -4,7 +4,7 @@ Use Emacs to run benchmarks and gather statistics into a csv buffer/file.
 # Inspiration
 The Haskell-based [HSBencher](https://hackage.haskell.org/package/hsbencher) tool.
 
-# Instalation example
+# Installation example
 Clone the repository for example in the .emacs.d directory
 ```
 cd ~/.emacs.d 
