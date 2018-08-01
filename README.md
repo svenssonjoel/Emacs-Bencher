@@ -21,6 +21,7 @@ The Haskell-based HSBencher tool. (TODO: add link)
   * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
   * DONE: The benchmark output should go to a temp buffer (one per "run") for tag parsing. Rather than using process-filters. 
   * Add functionality for running the benchmarks on a remote machine via emacs deamon.
+  * Write csv buffer to a file. 
 
 
 # .bench file syntax example
@@ -28,13 +29,14 @@ The Haskell-based HSBencher tool. (TODO: add link)
 ```
 %%
 name: test2
+csv: test2.csv
 varying: a '(1 2 3 4 5 6)
 varying: b '(1 2)
 executable: ./bench1 (* a 5) (+ b 10)
-tags: '("TAG0" "TAG1") 
 %%
 ```
 * name: specifies a name for this set of benchmark runs.
+* csv: specifies a name for a csv output buffer (and file, todo).
 * varying: specifies a variable and a space (an elisp expression evaluating to a list of values) for it to range over.
 * executable: specifies that an executable called "bench1" should be executed with two arguments
 that range over the lists specified as varying. Each combination of one value from the a list and one from the b constitutes a run. Lisp expressions in this string are evaluated and the result of evaluation passed to the executable.
