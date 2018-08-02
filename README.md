@@ -26,7 +26,6 @@ Then add the following to your .emacs file.
   * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
   * Potentially the .bench file can specify a fold operation over the N repeats of each benchmark run. 
   * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
-  * Add functionality for running the benchmarks on a remote machine via emacs deamon.
   * Write csv buffer to a file. 
 
 # .bench file syntax example
