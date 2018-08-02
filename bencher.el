@@ -23,33 +23,28 @@
 (require 'seq)
 (require 'cl)
 
-;; Todo: Add returning of success or failure from run-benchmarks
-;;       and report failure somehow. 
-
-
 ;; ------------------------------------------------------------
 ;; Version
 (defconst bencher-version "0.0.0")
-
 
 ;; ------------------------------------------------------------
 ;; data structures 
 
 ;; Benchmark struct
-(cl-defstruct benchmark name csv executable varying tags)
+(cl-defstruct bencher-benchmark name csv executable varying tags)
 
 ;; --- In progress --- 
 ;; Information needed to run an executable
-(cl-defstruct bt-executable name args)
+(cl-defstruct bencher-executable name args)
 
 ;; Information needed to build and run a makefile based project
-(cl-defstruct bt-makefile-project make-args run-args)
+(cl-defstruct bencher-makefile-project make-args run-args)
 ;; -------------------
 
-(cl-defstruct csv-format name args tags) ;; something like this ? 
+(cl-defstruct bencher-csv-format name args tags) ;; something like this ? 
 
 ;; Benchmark "run-unit"
-(cl-defstruct benchmark-run-unit
+(cl-defstruct bencher-run-unit
   name       ;; Benchmark name
   csv        ;; CSV output buffer name
   exec-args  ;; argument list (var, value) pairs 
@@ -193,24 +188,24 @@
 	(let ((ps (bencher-parse-key-val (car l))))
 	  (let ((key (car ps))
 		(value (cdr ps))) ; for simple cases 
-	    (cond ((string= key "name") (setf (benchmark-name bench) value))
-		  ((string= key "csv") (setf (benchmark-csv bench) value))
+	    (cond ((string= key "name") (setf (bencher-benchmark-name bench) value))
+		  ((string= key "csv") (setf (bencher-benchmark-csv bench) value))
 		  ((string= key "tags")
 		   (let* ((tags-list-expr (read-from-string value))
 			  (tags-list-strs
 			   (eval (car tags-list-expr))))
-		     (setf (benchmark-tags bench) tags-list-strs)))
+		     (setf (bencher-benchmark-tags bench) tags-list-strs)))
     
 		  ((string= key "varying")
 		   ; Bit ugly that the string is split at spaces and then recombined..
 		   (let* ((value-words (split-string value " "))
 		   	  (value-variable (car value-words))
 		    	  (value-body (bencher-string-join (cdr value-words) " ")))
-		     (setf (benchmark-varying bench)
+		     (setf (bencher-benchmark-varying bench)
 			   (cons (cons value-variable value-body)
-				 (benchmark-varying bench)))))
+				 (bencher-benchmark-varying bench)))))
 		  ((string= key "executable")
-		   (setf (benchmark-executable bench) value)))
+		   (setf (bencher-benchmark-executable bench) value)))
 	    (bencher-parse-benchmark bench (cdr l))))
       l)
     )
@@ -221,7 +216,7 @@
   (if ls
       (if (string-prefix-p "%%" (car ls))
 	  (if (cdr ls)
-	      (let ((bench (make-benchmark)))
+	      (let ((bench (make-bencher-benchmark)))
 		(let ((rest (bencher-parse-benchmark bench (cdr ls))))
 		  (cons bench (bencher-parse-benchmarks rest))))
 	    () ; Done!
@@ -291,13 +286,13 @@
 
 (defun bencher-output-csv-data (bench)
   "Write csv-data to a buffer named after the currently processed benchmark"
-  (let* ((buf-name (benchmark-run-unit-csv bench))
+  (let* ((buf-name (bencher-run-unit-csv bench))
 	 (buf (get-buffer buf-name))
-	 (csv-data (append (benchmark-run-unit-csv-data bench)
-			   (benchmark-run-unit-csv-data-tags bench)))
+	 (csv-data (append (bencher-run-unit-csv-data bench)
+			   (bencher-run-unit-csv-data-tags bench)))
 	 (csv-format
-	  (append (benchmark-run-unit-csv-header bench)
-		  (benchmark-run-unit-tags bench)
+	  (append (bencher-run-unit-csv-header bench)
+		  (bencher-run-unit-tags bench)
 		  bencher-time-tags))) 
 		  
       (bencher-message "Outputing csv")
@@ -340,22 +335,22 @@
   (let* ((bench (car bencher-scheduled-benchmarks-list))
 	 (prev-buf (current-buffer))
 	 ;; Set up a fresh buffer for each run
-	 (buf (generate-new-buffer (benchmark-run-unit-name bench))))
+	 (buf (generate-new-buffer (bencher-run-unit-name bench))))
     (setq bencher-scheduled-benchmarks-list
 	  (cdr bencher-scheduled-benchmarks-list))
     
     ;; Add information to accumulated CSV data
     ;; TODO: Turn this into a function 
-    (setf (benchmark-run-unit-csv-data bench)
-	  (cons (cons "Name"  (benchmark-run-unit-name bench)) ;; dotted pair
-		(benchmark-run-unit-csv-data bench)))
-    (setf (benchmark-run-unit-csv-header bench)
-	  (cons "Name" (benchmark-run-unit-csv-header bench)))
+    (setf (bencher-run-unit-csv-data bench)
+	  (cons (cons "Name"  (bencher-run-unit-name bench)) ;; dotted pair
+		(bencher-run-unit-csv-data bench)))
+    (setf (bencher-run-unit-csv-header bench)
+	  (cons "Name" (bencher-run-unit-csv-header bench)))
 	  
     (set-buffer buf)
-    (bencher-message (format "Running benchmark: %s" (benchmark-run-unit-name bench)))
-    (let ((proc (make-process :name (benchmark-run-unit-name bench)
-			      :command (append bencher-time-cmd (benchmark-run-unit-exec-cmd bench))
+    (bencher-message (format "Running benchmark: %s" (bencher-run-unit-name bench)))
+    (let ((proc (make-process :name (bencher-run-unit-name bench)
+			      :command (append bencher-time-cmd (bencher-run-unit-exec-cmd bench))
 			      :buffer buf)))
       (set-process-sentinel
        proc
@@ -366,12 +361,12 @@
 	    ((equal signal "finished\n")
 	       (let ((collected-csv-data (bencher-parse-buffer-for-tags
 					  buf
-					  (append (benchmark-run-unit-tags bench)
+					  (append (bencher-run-unit-tags bench)
 						  bencher-time-tags))))
 		 (bencher-message (format "Benchmark finished! %s" buf))
 		 (bencher-message (format "collected data: %s" collected-csv-data))
 		 ;; Add collected csv data to the run-unit (dont know why yet...) 
-		 (setf (benchmark-run-unit-csv-data-tags bench) collected-csv-data)
+		 (setf (bencher-run-unit-csv-data-tags bench) collected-csv-data)
 
 		 ;; output both "generated" CSV and collected CSV to buffer
 		 (bencher-output-csv-data bench)
@@ -418,13 +413,13 @@
 	
 	  (mapcar (lambda (x) (mapcar 'number-to-string x))
 		  (mapcar 'eval (mapcar 'car (mapcar 'read-from-string
-			      (mapcar 'cdr (benchmark-varying bench)))))))
+			      (mapcar 'cdr (bencher-benchmark-varying bench)))))))
 	 (varying-vars
-	  (mapcar 'car (benchmark-varying bench)))
+	  (mapcar 'car (bencher-benchmark-varying bench)))
 	 (varying-selections
 	  (bencher-all-selections varying-strs)))
     (dolist (elt varying-selections ())
-      (let* ((exec-cmd-orig (benchmark-executable bench))
+      (let* ((exec-cmd-orig (bencher-benchmark-executable bench))
 	     (exec-cmd-str (car (bencher-do-substitutions (list exec-cmd-orig) (mapcar* #'cons varying-vars elt))))
 	     (exe-args-exprs (bencher-read-expressions-from-string exec-cmd-str)) 
 	     (exe-args-evaled (mapcar 'eval (cdr exe-args-exprs)))
@@ -436,18 +431,18 @@
 			  exec-sym))                      ;; TODO: Alternatively figure out how to make make-process find executables in pwd. 
 	     (exec-cmd (cons exec-full exec-args)))
 
-	(let ((run-unit (make-benchmark-run-unit))
+	(let ((run-unit (make-bencher-run-unit))
 	      (args-csv (bencher-generate-exec-args-csv exec-args)))
-	  (setf (benchmark-run-unit-name run-unit) (benchmark-name bench))
-	  (if (benchmark-csv bench)	      
-	      (setf (benchmark-run-unit-csv run-unit) (benchmark-csv bench))
-	    (setf (benchmark-run-unit-csv run-unit) (concat (benchmark-name bench) ".csv")))
-	  (setf (benchmark-run-unit-exec-args run-unit) arg-bindings)
+	  (setf (bencher-run-unit-name run-unit) (bencher-benchmark-name bench))
+	  (if (bencher-benchmark-csv bench)	      
+	      (setf (bencher-run-unit-csv run-unit) (bencher-benchmark-csv bench))
+	    (setf (bencher-run-unit-csv run-unit) (concat (bencher-benchmark-name bench) ".csv")))
+	  (setf (bencher-run-unit-exec-args run-unit) arg-bindings)
 	  
 	  (bencher-append-csv-info run-unit args-csv)
   	  
-	  (setf (benchmark-run-unit-exec-cmd run-unit) exec-cmd)
-	  (setf (benchmark-run-unit-tags run-unit) (benchmark-tags bench))
+	  (setf (bencher-run-unit-exec-cmd run-unit) exec-cmd)
+	  (setf (bencher-run-unit-tags run-unit) (bencher-benchmark-tags bench))
 	  (setq bencher-scheduled-benchmarks-list
 		(cons run-unit bencher-scheduled-benchmarks-list)))))))
 
@@ -469,13 +464,13 @@
 
 (defmacro bencher-append-csv-header (run-unit csv-header)
   "Append a list of keys to the csv header line associated with this benchmark"
-  `(setf (benchmark-run-unit-csv-header ,run-unit)
-	 (append ,csv-header (benchmark-run-unit-csv-header ,run-unit))))
+  `(setf (bencher-run-unit-csv-header ,run-unit)
+	 (append ,csv-header (bencher-run-unit-csv-header ,run-unit))))
 
 (defmacro bencher-append-csv-data (run-unit csv-data)
   "Append a list of key-value pairs to the csv data associated with this benchmark"
-  `(setf (benchmark-run-unit-csv-data ,run-unit)
-	 (append ,csv-data (benchmark-run-unit-csv-data ,run-unit))))
+  `(setf (bencher-run-unit-csv-data ,run-unit)
+	 (append ,csv-data (bencher-run-unit-csv-data ,run-unit))))
 
 
 ;; ------------------------------------------------------------
