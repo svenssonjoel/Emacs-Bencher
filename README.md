@@ -24,9 +24,8 @@ Then add the following to your .emacs file.
   * Editing mode for .bench files (with run-benchmark-closeset-to-cursor function and run-all-benchmarks function).
   * Think of a .bench file format that makes more sense.
   * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
-  * Potentially the .bench file can specify a fold operation over the N repeats of each benchmark run. 
   * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
-  * Write csv buffer to a file. 
+  * Fix csv output: All benchmarks enqueued at one time should output csv into the same directory.
 
 # .bench file syntax example
 

@@ -45,13 +45,13 @@
 
 ;; Benchmark "run-unit"
 (cl-defstruct bencher-run-unit
-  name       ;; Benchmark name
-  csv        ;; CSV output buffer name
-  exec-args  ;; argument list (var, value) pairs 
-  exec-cmd   ;; Binary to run 
-  tags       ;; Tags of interest to this run-unit
-  csv-header ;; TODO: Come up with better names (This is only the non-tags part of the header) 
-  csv-data   ;; Generated CSV data
+  name           ;; Benchmark name
+  csv            ;; CSV output buffer name
+  exec-args      ;; argument list (var, value) pairs 
+  exec-cmd       ;; Binary to run 
+  tags           ;; Tags of interest to this run-unit
+  csv-header     ;; TODO: Come up with better names (This is only the non-tags part of the header) 
+  csv-data       ;; Generated CSV data
   csv-data-tags) ;; Collected CSV data (from tags) list of key-value pairs
 
 ;; ------------------------------------------------------------
@@ -296,21 +296,21 @@
 		  bencher-time-tags))) 
 		  
       (bencher-message "Outputing csv")
-      (if (not buf)
-	   (progn 
-	     (setq buf (get-buffer-create buf-name))
+      (if (= (buffer-size buf) 0) ;; csv buffer is empty
 	     (let ((csv-header (mapconcat 'identity csv-format ", "  )))
 	       (with-current-buffer buf
-		 (insert (concat csv-header "\n")))))
+		 (insert (concat csv-header "\n"))))
 	 
 	 
 	())
       
-      ;; Now buf exists
+      ;; Now contains the header
       (let ((csv-line (bencher-format-csv-string csv-format csv-data)))
 	(with-current-buffer buf
 	  (goto-char (point-max))	
-	  (insert (concat csv-line "\n"))))))
+	  (insert (concat csv-line "\n"))
+	  (save-buffer)))))
+
       
             
 		
@@ -417,7 +417,21 @@
 	 (varying-vars
 	  (mapcar 'car (bencher-benchmark-varying bench)))
 	 (varying-selections
-	  (bencher-all-selections varying-strs)))
+	  (bencher-all-selections varying-strs))
+	 (curr-date-time-string (format-time-string "%Y-%m-%d_%H-%M-%S"))
+	 (csv-file-name (if (bencher-benchmark-csv bench)
+			    (bencher-benchmark-csv bench)
+			  (concat (bencher-benchmark-name bench) ".csv")))
+	 (csv-output-dir
+	  (expand-file-name
+	   (concat ".//emacs_bencher//"
+		   curr-date-time-string)))
+	 
+	 (csv-output-file (concat csv-output-dir "//" csv-file-name)))
+    
+    (if (not (file-directory-p csv-output-dir))
+	(make-directory csv-output-dir t)
+      ())
     (dolist (elt varying-selections ())
       (let* ((exec-cmd-orig (bencher-benchmark-executable bench))
 	     (exec-cmd-str (car (bencher-do-substitutions (list exec-cmd-orig) (mapcar* #'cons varying-vars elt))))
@@ -434,9 +448,7 @@
 	(let ((run-unit (make-bencher-run-unit))
 	      (args-csv (bencher-generate-exec-args-csv exec-args)))
 	  (setf (bencher-run-unit-name run-unit) (bencher-benchmark-name bench))
-	  (if (bencher-benchmark-csv bench)	      
-	      (setf (bencher-run-unit-csv run-unit) (bencher-benchmark-csv bench))
-	    (setf (bencher-run-unit-csv run-unit) (concat (bencher-benchmark-name bench) ".csv")))
+	  (setf (bencher-run-unit-csv run-unit) (find-file-noselect csv-output-file))
 	  (setf (bencher-run-unit-exec-args run-unit) arg-bindings)
 	  
 	  (bencher-append-csv-info run-unit args-csv)
