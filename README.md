@@ -25,7 +25,6 @@ Then add the following to your .emacs file.
   * Think of a .bench file format that makes more sense.
   * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
   * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
-  * Fix csv output: All benchmarks enqueued at one time should output csv into the same directory.
 
 # .bench file syntax example
 
