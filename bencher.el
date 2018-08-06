@@ -335,12 +335,25 @@
   (let* ((bench (car bencher-scheduled-benchmarks-list))
 	 (prev-buf (current-buffer))
 	 ;; Set up a fresh buffer for each run
-	 (buf (generate-new-buffer (bencher-run-unit-name bench))))
+	 (buf (generate-new-buffer (bencher-run-unit-name bench)))
+	 (curr-date (format-time-string "%Y-%m-%d"))
+	 (curr-time (format-time-string "%H-%M-%S")))
     (setq bencher-scheduled-benchmarks-list
 	  (cdr bencher-scheduled-benchmarks-list))
     
     ;; Add information to accumulated CSV data
-    ;; TODO: Turn this into a function 
+    ;; TODO: Turn this into a function
+    (setf (bencher-run-unit-csv-data bench)
+	  (cons (cons "Date" curr-date)
+		(bencher-run-unit-csv-data bench)))
+    (setf (bencher-run-unit-csv-data bench)
+	  (cons (cons "Time" curr-time)
+		(bencher-run-unit-csv-data bench)))
+    
+    (setf (bencher-run-unit-csv-header bench)
+	  (cons "Date" (cons "Time" (bencher-run-unit-csv-header bench))))
+		
+	  
     (setf (bencher-run-unit-csv-data bench)
 	  (cons (cons "Name"  (bencher-run-unit-name bench)) ;; dotted pair
 		(bencher-run-unit-csv-data bench)))
@@ -401,12 +414,12 @@
 (defun bencher-enqueue-all-benches (benches)
   "Enqueue all benchmarks, add to scheduled benchmark list"
   (if benches
-      (progn 
-	(bencher-enqueue-benches (car benches))
-	(bencher-enqueue-all-benches (cdr benches)))
+	(let ((curr-date-time-string (format-time-string "%Y-%m-%d_%H-%M-%S")))
+	  (bencher-enqueue-benches (car benches) curr-date-time-string)
+	  (bencher-enqueue-all-benches (cdr benches)))
     ()))
 
-(defun bencher-enqueue-benches (bench)
+(defun bencher-enqueue-benches (bench curr-date-time-string)
   "Expand the varying space of the benchmark and enqueue each instance"
   
   (let* ((varying-strs
@@ -418,7 +431,6 @@
 	  (mapcar 'car (bencher-benchmark-varying bench)))
 	 (varying-selections
 	  (bencher-all-selections varying-strs))
-	 (curr-date-time-string (format-time-string "%Y-%m-%d_%H-%M-%S"))
 	 (csv-file-name (if (bencher-benchmark-csv bench)
 			    (bencher-benchmark-csv bench)
 			  (concat (bencher-benchmark-name bench) ".csv")))
