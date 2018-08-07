@@ -290,10 +290,10 @@
 	 (buf (get-buffer buf-name))
 	 (csv-data (append (bencher-run-unit-csv-data bench)
 			   (bencher-run-unit-csv-data-tags bench)))
-	 (csv-format
-	  (append (bencher-run-unit-csv-header bench)
-		  (bencher-run-unit-tags bench)
-		  bencher-time-tags))) 
+	 (csv-format (bencher-run-unit-csv-header bench)))
+;;	  (append (bencher-run-unit-csv-header bench)
+;;		  (bencher-run-unit-tags bench)
+;;		  bencher-time-tags))) 
 		  
       (bencher-message "Outputing csv")
       (if (= (buffer-size buf) 0) ;; csv buffer is empty
@@ -340,7 +340,15 @@
 	 (curr-time (format-time-string "%H-%M-%S")))
     (setq bencher-scheduled-benchmarks-list
 	  (cdr bencher-scheduled-benchmarks-list))
-    
+
+    ;; Set up the csv header format 
+    (setf (bencher-run-unit-csv-header bench)
+	  (append (list "Name")
+		  (bencher-run-unit-csv-header bench) ;; Already contains the "ARGS". Maybe change this.
+		  (bencher-run-unit-tags bench)
+		  bencher-time-tags
+		  (list "Date" "Time")))
+		  
     ;; Add information to accumulated CSV data
     ;; TODO: Turn this into a function
     (setf (bencher-run-unit-csv-data bench)
@@ -349,16 +357,17 @@
     (setf (bencher-run-unit-csv-data bench)
 	  (cons (cons "Time" curr-time)
 		(bencher-run-unit-csv-data bench)))
-    
+
+    ;; Put date and time at the end of the csb header
     (setf (bencher-run-unit-csv-header bench)
-	  (cons "Date" (cons "Time" (bencher-run-unit-csv-header bench))))
+	  (append (bencher-run-unit-csv-header bench) (list "Date" "Time")))
 		
 	  
     (setf (bencher-run-unit-csv-data bench)
 	  (cons (cons "Name"  (bencher-run-unit-name bench)) ;; dotted pair
 		(bencher-run-unit-csv-data bench)))
-    (setf (bencher-run-unit-csv-header bench)
-	  (cons "Name" (bencher-run-unit-csv-header bench)))
+    ;;(setf (bencher-run-unit-csv-header bench)
+    ;;	  (cons "Name" (bencher-run-unit-csv-header bench)))
 	  
     (set-buffer buf)
     (bencher-message (format "Running benchmark: %s" (bencher-run-unit-name bench)))
