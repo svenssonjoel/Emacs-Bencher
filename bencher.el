@@ -356,18 +356,11 @@
 		(bencher-run-unit-csv-data bench)))
     (setf (bencher-run-unit-csv-data bench)
 	  (cons (cons "Time" curr-time)
-		(bencher-run-unit-csv-data bench)))
-
-    ;; Put date and time at the end of the csb header
-    (setf (bencher-run-unit-csv-header bench)
-	  (append (bencher-run-unit-csv-header bench) (list "Date" "Time")))
-		
+		(bencher-run-unit-csv-data bench)))		
 	  
     (setf (bencher-run-unit-csv-data bench)
 	  (cons (cons "Name"  (bencher-run-unit-name bench)) ;; dotted pair
 		(bencher-run-unit-csv-data bench)))
-    ;;(setf (bencher-run-unit-csv-header bench)
-    ;;	  (cons "Name" (bencher-run-unit-csv-header bench)))
 	  
     (set-buffer buf)
     (bencher-message (format "Running benchmark: %s" (bencher-run-unit-name bench)))
