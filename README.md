@@ -24,7 +24,6 @@ git clone https://github.com/svenssonjoel/Emacs-Bencher.git'
   * Log output buffers.
   * Makefile projects and compile-time argument support.
   * Editing mode for .bench files (with run-benchmark-closeset-to-cursor function and run-all-benchmarks function).
-  * Think of a .bench file format that makes more sense.
   * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
   * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
 
