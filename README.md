@@ -5,12 +5,14 @@ Use Emacs to run benchmarks and gather statistics into a csv buffer/file.
 The Haskell-based [HSBencher](https://hackage.haskell.org/package/hsbencher) tool.
 
 # Installation example
-Clone the repository for example in the .emacs.d directory
+
+1. Clone the repository for example in the .emacs.d directory.
 ```
 cd ~/.emacs.d 
 git clone https://github.com/svenssonjoel/Emacs-Bencher.git'
 ```
-Then add the following to your .emacs file.
+
+2. Add the following to your .emacs file.
 ```
 (add-to-list 'load-path "~/.emacs.d/Emacs-Bencher/")
 (require 'bencher)
@@ -35,6 +37,7 @@ csv: test2.csv
 varying: a '(1 2 3 4 5 6)
 varying: b '(1 2)
 executable: ./bench1 (* a 5) (+ b 10)
+tags: '("TAG0" "TAG1") 
 %%
 ```
 * name: specifies a name for this set of benchmark runs.
