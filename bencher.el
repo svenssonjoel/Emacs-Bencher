@@ -31,7 +31,13 @@
 ;; data structures 
 
 ;; Benchmark struct
-(cl-defstruct bencher-benchmark name csv executable varying tags)
+(cl-defstruct bencher-benchmark
+  name 
+  csv
+  executable
+  varying
+  runs        ;; Number of times to run the benchmark with each varying setting.
+  tags)
 
 ;; --- In progress --- 
 ;; Information needed to run an executable
@@ -47,6 +53,7 @@
 (cl-defstruct bencher-run-unit
   name           ;; Benchmark name
   csv            ;; CSV output buffer name
+  run-id         ;; connected to runs in bencher-benchmark struct.
   exec-args      ;; argument list (var, value) pairs 
   exec-cmd       ;; Binary to run 
   tags           ;; Tags of interest to this run-unit
@@ -190,6 +197,8 @@
 		(value (cdr ps))) ; for simple cases 
 	    (cond ((string= key "name") (setf (bencher-benchmark-name bench) value))
 		  ((string= key "csv") (setf (bencher-benchmark-csv bench) value))
+		  ((string= key "runs") (setf (bencher-benchmark-runs bench)
+					      (string-to-number value)))
 		  ((string= key "tags")
 		   (let* ((tags-list-expr (read-from-string value))
 			  (tags-list-strs
@@ -291,9 +300,6 @@
 	 (csv-data (append (bencher-run-unit-csv-data bench)
 			   (bencher-run-unit-csv-data-tags bench)))
 	 (csv-format (bencher-run-unit-csv-header bench)))
-;;	  (append (bencher-run-unit-csv-header bench)
-;;		  (bencher-run-unit-tags bench)
-;;		  bencher-time-tags))) 
 		  
       (bencher-message "Outputing csv")
       (if (= (buffer-size buf) 0) ;; csv buffer is empty
