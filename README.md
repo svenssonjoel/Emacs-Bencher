@@ -24,7 +24,6 @@ git clone https://github.com/svenssonjoel/Emacs-Bencher.git'
   * Log output buffers.
   * Makefile projects and compile-time argument support.
   * Editing mode for .bench files (with run-benchmark-closeset-to-cursor function and run-all-benchmarks function).
-  * Add functionality to repeat a benchmark N times (give the user data from each run in the CSV).
   * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
 
 # .bench file syntax example
@@ -33,6 +32,7 @@ git clone https://github.com/svenssonjoel/Emacs-Bencher.git'
 %%
 name: test2
 csv: test2.csv
+runs: 5
 varying: a '(1 2 3 4 5 6)
 varying: b '(1 2)
 executable: ./bench1 (* a 5) (+ b 10)
@@ -41,6 +41,7 @@ tags: '("TAG0" "TAG1")
 ```
 * name: specifies a name for this set of benchmark runs.
 * csv: specifies a name for a csv output buffer (and file, todo).
+* runs: specifies how many times the benchmark should run at each varying setting. 
 * varying: specifies a variable and a space (an elisp expression evaluating to a list of values) for it to range over.
 * executable: specifies that an executable called "bench1" should be executed with two arguments
 that range over the lists specified as varying. Each combination of one value from the a list and one from the b constitutes a run. Lisp expressions in this string are evaluated and the result of evaluation passed to the executable.

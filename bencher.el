@@ -447,7 +447,10 @@
 	   (concat ".//emacs_bencher//"
 		   curr-date-time-string)))
 	 
-	 (csv-output-file (concat csv-output-dir "//" csv-file-name)))
+	 (csv-output-file (concat csv-output-dir "//" csv-file-name))
+	 (runs-count (if (bencher-benchmark-runs bench)
+			 (bencher-benchmark-runs bench)
+		       1)))
     
     (if (not (file-directory-p csv-output-dir))
 	(make-directory csv-output-dir t)
@@ -464,19 +467,22 @@
 			    (expand-file-name exec-sym)     ;; if a file in pwd is specified in the .bench file. 
 			  exec-sym))                      ;; TODO: Alternatively figure out how to make make-process find executables in pwd. 
 	     (exec-cmd (cons exec-full exec-args)))
-
-	(let ((run-unit (make-bencher-run-unit))
-	      (args-csv (bencher-generate-exec-args-csv exec-args)))
-	  (setf (bencher-run-unit-name run-unit) (bencher-benchmark-name bench))
-	  (setf (bencher-run-unit-csv run-unit) (find-file-noselect csv-output-file))
-	  (setf (bencher-run-unit-exec-args run-unit) arg-bindings)
-	  
-	  (bencher-append-csv-info run-unit args-csv)
-  	  
-	  (setf (bencher-run-unit-exec-cmd run-unit) exec-cmd)
-	  (setf (bencher-run-unit-tags run-unit) (bencher-benchmark-tags bench))
-	  (setq bencher-scheduled-benchmarks-list
-		(cons run-unit bencher-scheduled-benchmarks-list)))))))
+	(dolist (run-id (number-sequence 0 (- runs-count 1)) t)
+	  (let ((run-unit (make-bencher-run-unit))
+		(args-csv (bencher-generate-exec-args-csv exec-args))
+		(run-id-csv (cons (list "Run-id") (list (cons "Run-id" (number-to-string run-id))))))
+	    (setf (bencher-run-unit-run-id run-unit) run-id)
+	    (setf (bencher-run-unit-name run-unit) (bencher-benchmark-name bench))
+	    (setf (bencher-run-unit-csv run-unit) (find-file-noselect csv-output-file))
+	    (setf (bencher-run-unit-exec-args run-unit) arg-bindings)
+	    
+	    (bencher-append-csv-info run-unit args-csv)
+	    (bencher-append-csv-info run-unit run-id-csv)
+	    
+	    (setf (bencher-run-unit-exec-cmd run-unit) exec-cmd)
+	    (setf (bencher-run-unit-tags run-unit) (bencher-benchmark-tags bench))
+	    (setq bencher-scheduled-benchmarks-list
+		  (cons run-unit bencher-scheduled-benchmarks-list))))))))
 
 ;; ------------------------------------------------------------
 (defun bencher-generate-exec-args-csv (exec-args)
