@@ -31,7 +31,13 @@
 ;; data structures 
 
 ;; Benchmark struct
-(cl-defstruct bencher-benchmark name csv executable varying tags)
+(cl-defstruct bencher-benchmark
+  name 
+  csv
+  executable
+  varying
+  runs        ;; Number of times to run the benchmark with each varying setting.
+  tags)
 
 ;; --- In progress --- 
 ;; Information needed to run an executable
@@ -47,6 +53,7 @@
 (cl-defstruct bencher-run-unit
   name           ;; Benchmark name
   csv            ;; CSV output buffer name
+  run-id         ;; connected to runs in bencher-benchmark struct.
   exec-args      ;; argument list (var, value) pairs 
   exec-cmd       ;; Binary to run 
   tags           ;; Tags of interest to this run-unit
@@ -190,6 +197,8 @@
 		(value (cdr ps))) ; for simple cases 
 	    (cond ((string= key "name") (setf (bencher-benchmark-name bench) value))
 		  ((string= key "csv") (setf (bencher-benchmark-csv bench) value))
+		  ((string= key "runs") (setf (bencher-benchmark-runs bench)
+					      (string-to-number value)))
 		  ((string= key "tags")
 		   (let* ((tags-list-expr (read-from-string value))
 			  (tags-list-strs
@@ -290,9 +299,6 @@
 	 (csv-data (append (bencher-run-unit-csv-data bench)
 			   (bencher-run-unit-csv-data-tags bench)))
 	 (csv-format (bencher-run-unit-csv-header bench)))
-;;	  (append (bencher-run-unit-csv-header bench)
-;;		  (bencher-run-unit-tags bench)
-;;		  bencher-time-tags))) 
 		  
       (bencher-message "Outputing csv")
       (if (= (buffer-size buf) 0) ;; csv buffer is empty
@@ -440,7 +446,10 @@
 	   (concat ".//emacs_bencher//"
 		   curr-date-time-string)))
 	 
-	 (csv-output-file (concat csv-output-dir "//" csv-file-name)))
+	 (csv-output-file (concat csv-output-dir "//" csv-file-name))
+	 (runs-count (if (bencher-benchmark-runs bench)
+			 (bencher-benchmark-runs bench)
+		       1)))
     
     (if (not (file-directory-p csv-output-dir))
 	(make-directory csv-output-dir t)
@@ -457,19 +466,22 @@
 			    (expand-file-name exec-sym)     ;; if a file in pwd is specified in the .bench file. 
 			  exec-sym))                      ;; TODO: Alternatively figure out how to make make-process find executables in pwd. 
 	     (exec-cmd (cons exec-full exec-args)))
-
-	(let ((run-unit (make-bencher-run-unit))
-	      (args-csv (bencher-generate-exec-args-csv exec-args)))
-	  (setf (bencher-run-unit-name run-unit) (bencher-benchmark-name bench))
-	  (setf (bencher-run-unit-csv run-unit) (find-file-noselect csv-output-file))
-	  (setf (bencher-run-unit-exec-args run-unit) arg-bindings)
-	  
-	  (bencher-append-csv-info run-unit args-csv)
-  	  
-	  (setf (bencher-run-unit-exec-cmd run-unit) exec-cmd)
-	  (setf (bencher-run-unit-tags run-unit) (bencher-benchmark-tags bench))
-	  (setq bencher-scheduled-benchmarks-list
-		(cons run-unit bencher-scheduled-benchmarks-list)))))))
+	(dolist (run-id (number-sequence 0 (- runs-count 1)) t)
+	  (let ((run-unit (make-bencher-run-unit))
+		(args-csv (bencher-generate-exec-args-csv exec-args))
+		(run-id-csv (cons (list "Run-id") (list (cons "Run-id" (number-to-string run-id))))))
+	    (setf (bencher-run-unit-run-id run-unit) run-id)
+	    (setf (bencher-run-unit-name run-unit) (bencher-benchmark-name bench))
+	    (setf (bencher-run-unit-csv run-unit) (find-file-noselect csv-output-file))
+	    (setf (bencher-run-unit-exec-args run-unit) arg-bindings)
+	    
+	    (bencher-append-csv-info run-unit args-csv)
+	    (bencher-append-csv-info run-unit run-id-csv)
+	    
+	    (setf (bencher-run-unit-exec-cmd run-unit) exec-cmd)
+	    (setf (bencher-run-unit-tags run-unit) (bencher-benchmark-tags bench))
+	    (setq bencher-scheduled-benchmarks-list
+		  (cons run-unit bencher-scheduled-benchmarks-list))))))))
 
 ;; ------------------------------------------------------------
 (defun bencher-generate-exec-args-csv (exec-args)
