@@ -44,7 +44,7 @@ tags: '("TAG0" "TAG1")
 that range over the lists specified as varying. Each combination of one value from the a list and one from the b constitutes a run. Lisp expressions in this string are evaluated and the result of evaluation passed to the executable.
 * tags: specifies a list of names of tags. If the program under benchmarking outputs a string 'TAG: value', value will be parsed and stored in output csv. The separating colon in the benchmark output tag line is required. 
 
-# Running a benchmarks
+# Running a set of benchmarks
 There are two Emacs-Bencher functions for starting a set of benchmarks.
 
 1. bencher-run-benchmarks-file "\path\to\file.bench"
