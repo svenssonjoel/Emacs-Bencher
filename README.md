@@ -21,15 +21,6 @@ git clone https://github.com/svenssonjoel/Emacs-Bencher.git'
 (add-to-list 'load-path "~/.emacs.d/Emacs-Bencher/")
 (require 'bencher)
 ``` 
-
-# TODO
-  * Learn to code LISP.
-  * Add error checking to many places. 
-  * Log output buffers.
-  * Makefile projects and compile-time argument support.
-  * Editing mode for .bench files (with run-benchmark-closeset-to-cursor function and run-all-benchmarks function).
-  * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
-
 # .bench file syntax example
 In Emacs-Bencher, one or more benchmarks are specified in a file (or Emacs buffer) as a set of colon separated key value pairs.
 Benchmarks are separated using %%. For some keys the associated value can be expressed using an embedded elisp expression. 
@@ -88,3 +79,11 @@ sleep, 0, 2, 2.00, 0.00, 0.00, 0, 2018-08-12, 08-12-59
 sleep, 1, 1, 1.00, 0.00, 0.00, 0, 2018-08-12, 08-13-02
 sleep, 0, 1, 1.00, 0.00, 0.00, 0, 2018-08-12, 08-13-04
 ```
+
+# TODO
+  * Learn to code LISP.
+  * Add error checking to many places. 
+  * Log output buffers.
+  * Makefile projects and compile-time argument support.
+  * Editing mode for .bench files (with run-benchmark-closeset-to-cursor function and run-all-benchmarks function).
+  * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
