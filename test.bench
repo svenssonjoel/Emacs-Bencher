@@ -1,12 +1,14 @@
 %%
 name: sleep
 csv: sleep.csv
-varying: a  '(1 2 3 4 5 6)
+runs: 2 
+varying: a  (number-sequence 1 6)
 executable: sleep a
 %%
 name: test2
 csv: test2.csv
-varying: a '(1 2 3 4 5 6)
+runs: 5
+varying: a (number-sequence 1 6)
 varying: b '(1 2)
 executable: ./bench1 (* a 5) (+ b 10)
 tags: '("TAG0" "TAG1") 

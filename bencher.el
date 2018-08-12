@@ -225,7 +225,6 @@
     ())
   )
 
-
 (defun bencher-do-substitutions (strs var-vals)
   "Substitues variables with values in list of strings"
   (if (not var-vals) strs
