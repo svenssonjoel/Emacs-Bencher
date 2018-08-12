@@ -65,10 +65,12 @@
 ;; State of Emacs-Bencher 
 
 (defvar bencher-running-benchmark nil)
-(defvar bencher-scheduled-benchmarks-list ()) ; benches to run
+(defvar bencher-scheduled-benchmarks-list '()) ; benches to run
 (defvar bencher-benchmark-run-timer nil)
 
-(defvar bencher-run-unit-sentinel nil)
+;; List of functions (that take a list of key-value pairs as input) to be run 
+;; at the end of each benchmark. 
+(defvar bencher-data-processing-plugin-list '()) 
 
 (defconst bencher-time-cmd '("/usr/bin/time"
 			     "-f"
@@ -82,6 +84,15 @@
 ;debug
 (setq bencher-scheduled-benchmarks-list ())
 (setq bencher-running-benchmark nil)
+
+;; Example of a data processing plugin
+;; (defun bencher-dummy-echo-to-messages (values)
+;;   "dummy"
+;;   (message (format "DUMMY: %s" values)))
+
+;; (setq bencher-data-processing-plugin-list
+;;       (cons #'bencher-dummy-echo-to-messages
+;; 	    bencher-data-processing-plugin-list))
 
 ;; ------------------------------------------------------------
 ;; Emacs-Bencher message buffer
@@ -316,11 +327,27 @@
 	  (insert (concat csv-line "\n"))
 	  (save-buffer)))))
 
+
+;; ------------------------------------------------------------
+;; Handling of plugins for data processing 
+(defun bencher-run-data-processing-plugins (bench plugin-list)
+  "Send accumulated data to all functions in the plugin-list"
+  (when plugin-list
+      (let* ((all-collected-data (append
+				  (bencher-run-unit-csv-data bench)
+				  (bencher-run-unit-csv-data-tags bench))))
+	(dolist (plugin plugin-list ())
+	  (message "Hello")
+	  (funcall plugin all-collected-data)))))
       
-            
-		
-  
-  
+(defun bencher-add-data-processing-plugin (plugin)
+  "Add a data processing plugin to the list of plugins"
+  (setq bencher-data-processing-plugin-list
+       (cons plugin bencher-data-processing-plugin-list)))
+
+
+;; ------------------------------------------------------------
+;; Do the running of benchmarks 
 (defun bencher-do-run-benchmarks ()
   "Process enqueued benchmarks. This function is run on a timer"
   (bencher-message (format "There are %s benchmarks to process"
@@ -390,6 +417,16 @@
 
 		 ;; output both "generated" CSV and collected CSV to buffer
 		 (bencher-output-csv-data bench)
+
+		 ;; Let all the data processing plugins handle the data as well.
+		 ;; TODO: The CSV output above should be an example of this
+		 ;;       kind of plugin
+		 (bencher-run-data-processing-plugins
+		  bench
+		  bencher-data-processing-plugin-list)
+		 
+		 
+		 
 		 (setq bencher-running-benchmark nil)
 		 ;; Destroy benchmark run output buffer.
 		 ;; Todo: Maybe add storing of the buffer to a log file

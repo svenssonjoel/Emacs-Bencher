@@ -2,9 +2,8 @@
 Emacs-Bencher automates the running of a program over a space of inputs while
 gathering statistics about for example running time into a csv buffer/file. 
 
-# Inspiration
-The Haskell-based [HSBencher](https://hackage.haskell.org/package/hsbencher) tool.
-Like HSBencher, Emacs-Bencher looks for the occurence of user defined "tags" in the
+Like the Haskell-based [HSBencher](https://hackage.haskell.org/package/hsbencher)
+tool, Emacs-Bencher looks for the occurence of user defined "tags" in the
 output stream of the running program. Tags are of the form "key: value" and are
 parsed by Emacs-Bencher and added to the csv result. 
 
@@ -86,4 +85,3 @@ sleep, 0, 1, 1.00, 0.00, 0.00, 0, 2018-08-12, 08-13-04
   * Log output buffers.
   * Makefile projects and compile-time argument support.
   * Editing mode for .bench files (with run-benchmark-closeset-to-cursor function and run-all-benchmarks function).
-  * Add checking of success/failure code when "shelling" out to run benchmarked executable. Maybe add a retry counter and a max-retries number.
