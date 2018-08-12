@@ -56,8 +56,8 @@ that range over the lists specified as varying. Each combination of one value fr
 # Running a benchmarks
 There are two Emacs-Bencher functions for starting a set of benchmarks.
 
-1. 'bencher-run-benchmarks-file "\path\to\file.bench"'
-2. 'bencher-run-benchmarks-buffer buffer'
+1. bencher-run-benchmarks-file "\path\to\file.bench"
+2. bencher-run-benchmarks-buffer buffer
 
 These can be run using 'M-x' or 'M-:'
 
