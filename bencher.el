@@ -270,7 +270,6 @@
   "Look for occurances of tags in buffer."
   (let ((buffer-strs
 	 (with-current-buffer buf (split-string (buffer-string) "\n" t))))
-    (bencher-message (format "BUFFER STR: %s" buffer-strs))
     (bencher-read-tag-values buffer-strs tags () )))
 
 (defun bencher-read-tag-values (data tags csv-accum)
