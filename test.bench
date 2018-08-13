@@ -10,7 +10,7 @@ csv: test2.csv
 runs: 5
 varying: a (number-sequence 1 6)
 varying: b '(1 2)
-executable: ./bench1 (* a 5) (+ b 10)
+executable: ./example_bench1/bench1 (* a 5) (+ b 10)
 tags: '("TAG0" "TAG1") 
 %%
 name: apa
