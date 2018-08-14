@@ -1,9 +1,13 @@
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main (int argc, char **argv) {
 
   int i = 0;
+
+  int r_int = rand() % 10000;
+  float r_float = (float)(rand() % 10000) / 10000; 
   
   char cwd[1024];
   if (getcwd(cwd, sizeof(cwd)) != NULL)
@@ -19,15 +23,14 @@ int main (int argc, char **argv) {
     
   }
 
-  for (i = 0; i < 5; i ++) {
-    printf(".");
-    sleep(1);
-  }
+  
+  sleep(1);
+
   printf("\n"); 
   
   /*Tag examples*/
-  printf("TAG0: 15\n");
-  printf("TAG1: 1.9\n");
+  printf("TAG0: %d\n", r_int);
+  printf("TAG1: %f\n", r_float);
 	 
   
   return 0;
