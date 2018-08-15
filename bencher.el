@@ -82,17 +82,20 @@
 (defconst bencher-messages-buffer-name "*Bencher-messages*")
 
 ;debug
-(setq bencher-scheduled-benchmarks-list ())
+(setq bencher-scheduled-benchmarks-list '())
 (setq bencher-running-benchmark nil)
 
-;; Example of a data processing plugin
-;; (defun bencher-dummy-echo-to-messages (values)
-;;   "dummy"
-;;   (message (format "DUMMY: %s" values)))
-
-;; (setq bencher-data-processing-plugin-list
-;;       (cons #'bencher-dummy-echo-to-messages
-;; 	    bencher-data-processing-plugin-list))
+;; Reset state completely. After reset the system should again be ready to
+;; to process new benchmarks. 
+(defun bencher-reset-state ()
+  "Completely reset the associated bencher state."
+  (setq bencher-scheduler-benchmarks-list '())
+  ;;(setq bencher-data-processing-plugin-list '()) ;; Should this really be wiped? Maybe not.
+  (when bencher-benchmark-run-timer
+    (progn (cancel-timer bencher-benchmark-run-timer)
+	   (setq bencher-benchmark-run-timer nil)))
+  (setq bencher-running-benchmark nil))
+    
 
 ;; ------------------------------------------------------------
 ;; Emacs-Bencher message buffer

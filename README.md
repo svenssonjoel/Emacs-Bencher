@@ -51,6 +51,23 @@ There are two Emacs-Bencher functions for starting a set of benchmarks.
 
 These can be run using 'M-x' or 'M-:'
 
+# Extensible through data processing "plugins"
+
+Additional methods of processing the benchmark result data can be added to the bencher-data-processing-plugin-list.
+A "plugin" is function taking a list of key-value pairs of input. The example below just outputs the results
+of each benchmark to the *Messages* buffer. 
+
+```
+;; Example of a data processing plugin
+(defun bencher-dummy-echo-to-messages (values)
+   "dummy"
+   (message (format "DUMMY: %s" values)))
+
+(setq bencher-data-processing-plugin-list
+       (cons #'bencher-dummy-echo-to-messages
+ 	     bencher-data-processing-plugin-list))
+```
+
 
 # Example benchmark and csv output
 
