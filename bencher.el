@@ -70,7 +70,16 @@
 
 ;; List of functions (that take a list of key-value pairs as input) to be run 
 ;; at the end of each benchmark. 
-(defvar bencher-data-processing-plugin-list '()) 
+(defvar bencher-data-processing-plugin-list '())
+
+;; List of functions for harvesting additional information from the system. 
+;; Functions in this list should take one argument and return a key-value pair (key and value are both strings).
+;; The functions should respond to the arguments 't and 'nil, if 't it should return only a string containing the key (for csv-header generations purposes)
+;; All functions in the list are executed after running each benchmark and the output key-value pairs are
+;; added to the CSV line for the current run.
+;; TODO: Find out where it is best to go through this list and run with arg 't.
+;; TODO: Add code that runs all functions with arg 'nil directly after finishing the benchmark.
+(defvar bencher-information-harvester-list '())
 
 (defconst bencher-time-cmd '("/usr/bin/time"
 			     "-f"
