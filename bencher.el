@@ -40,10 +40,10 @@
   tags)
 
 ;; --- In progress --- 
-;; Information needed to run an executable
+;; TODO: Information needed to run an executable
 (cl-defstruct bencher-executable name args)
 
-;; Information needed to build and run a makefile based project
+;; TODO: Information needed to build and run a makefile based project
 (cl-defstruct bencher-makefile-project make-args run-args)
 ;; -------------------
 
@@ -79,7 +79,8 @@
 ;; added to the CSV line for the current run.
 ;; TODO: Find out where it is best to go through this list and run with arg 't.
 ;; TODO: Add code that runs all functions with arg 'nil directly after finishing the benchmark.
-(defvar bencher-information-harvester-list '())
+(defvar bencher-pre-information-harvester-list '())
+(defvar bencher-post-information-harvester-list '())
 
 (defconst bencher-time-cmd '("/usr/bin/time"
 			     "-f"
@@ -91,8 +92,8 @@
 (defconst bencher-messages-buffer-name "*Bencher-messages*")
 
 ;debug
-(setq bencher-scheduled-benchmarks-list '())
-(setq bencher-running-benchmark nil)
+;(setq bencher-scheduled-benchmarks-list '())
+;(setq bencher-running-benchmark nil)
 
 ;; Reset state completely. After reset the system should again be ready to
 ;; to process new benchmarks. 
@@ -100,11 +101,17 @@
   "Completely reset the associated bencher state."
   (setq bencher-scheduler-benchmarks-list '())
   ;;(setq bencher-data-processing-plugin-list '()) ;; Should this really be wiped? Maybe not.
+  (setq bencher-pre-information-harvester-list '())  ;; 
+  (setq bencher-postinformation-harvester-list '())  ;; 
   (when bencher-benchmark-run-timer
     (progn (cancel-timer bencher-benchmark-run-timer)
 	   (setq bencher-benchmark-run-timer nil)))
   (setq bencher-running-benchmark nil))
-    
+
+
+;; Loading bencher.el causes a reset
+(bencher-reset-state)
+
 
 ;; ------------------------------------------------------------
 ;; Emacs-Bencher message buffer
@@ -132,7 +139,6 @@
     
     (set-buffer prev-buf)))
  
-
 (defun bencher-clear-messages ()
   "Clear the *Bencher-messages* buffer"
   (let ((prev-buf (current-buffer)))
@@ -239,9 +245,7 @@
 		  ((string= key "executable")
 		   (setf (bencher-benchmark-executable bench) value)))
 	    (bencher-parse-benchmark bench (cdr l))))
-      l)
-    )
-  )
+      l)))
 
 (defun bencher-parse-benchmarks (ls)
   "parse strings into benchmarks"
@@ -254,8 +258,7 @@
 	    () ; Done!
 	    )
 	(bencher-message "Error parsing benchmark"))
-    ())
-  )
+    ()))
 
 (defun bencher-do-substitutions (strs var-vals)
   "Substitues variables with values in list of strings"
@@ -358,6 +361,48 @@
 
 
 ;; ------------------------------------------------------------
+;; Handling of the information harvesters list
+(defun bencher-generate-information-harvester-csv-header ()
+  "Runs all the information harvesters with 't argument"
+  (let ((header '()))
+    (progn (dolist (elt (append bencher-pre-information-harvester-list
+				bencher-post-information-harvester-list))
+	     (let ((key (funcall elt 't)))
+	       (setq header (cons key header))))
+	   header)))
+		
+
+(defun bencher-run-information-harvesters (list)
+  "Runs all the information harvesters with 'nil argument"
+  (let ((csv '()))
+    (progn (dolist (elt list)
+	     (let ((key-val (funcall elt 'nil)))
+	       (setq csv (cons key-val csv))))
+	   csv)))
+
+
+(defun bencher-time-information-harvester (just-header)
+  (let ((key "Time"))
+    (if just-header
+	key
+      (let ((time (format-time-string "%H-%M-%S")))
+	(cons key time)))))
+	
+(defun bencher-date-information-harvester (just-header)
+  (let ((key "Date"))
+    (if just-header
+	key
+      (let ((date (format-time-string "%Y-%m-%d")))
+	(cons key date)))))
+
+(setq bencher-pre-information-harvester-list
+      (append (list #'bencher-date-information-harvester
+		    #'bencher-time-information-harvester)
+	    bencher-pre-information-harvester-list))
+
+
+
+;; ------------------------------------------------------------
 ;; Do the running of benchmarks 
 (defun bencher-do-run-benchmarks ()
   "Process enqueued benchmarks. This function is run on a timer"
@@ -378,9 +423,9 @@
   (let* ((bench (car bencher-scheduled-benchmarks-list))
 	 (prev-buf (current-buffer))
 	 ;; Set up a fresh buffer for each run
-	 (buf (generate-new-buffer (bencher-run-unit-name bench)))
-	 (curr-date (format-time-string "%Y-%m-%d"))
-	 (curr-time (format-time-string "%H-%M-%S")))
+	 (buf (generate-new-buffer (bencher-run-unit-name bench))))
+	 ;;(curr-date (format-time-string "%Y-%m-%d"))
+	 ;;(curr-time (format-time-string "%H-%M-%S")))
     (setq bencher-scheduled-benchmarks-list
 	  (cdr bencher-scheduled-benchmarks-list))
 
@@ -389,22 +434,31 @@
 	  (append (list "Name")
 		  (bencher-run-unit-csv-header bench) ;; Already contains the "ARGS". Maybe change this.
 		  (bencher-run-unit-tags bench)
-		  bencher-time-tags
-		  (list "Date" "Time")))
+		  bencher-time-tags))
+		  ;;(list "Date" "Time")))
+
+    (setf (bencher-run-unit-csv-header bench)
+	  (append (bencher-run-unit-csv-header bench)
+		  (bencher-generate-information-harvester-csv-header)))
 		  
     ;; Add information to accumulated CSV data
     ;; TODO: Turn this into a function
-    (setf (bencher-run-unit-csv-data bench)
-	  (cons (cons "Date" curr-date)
-		(bencher-run-unit-csv-data bench)))
-    (setf (bencher-run-unit-csv-data bench)
-	  (cons (cons "Time" curr-time)
-		(bencher-run-unit-csv-data bench)))		
-	  
+    ;;(setf (bencher-run-unit-csv-data bench) 
+    ;;	  (cons (cons "Date" curr-date)
+    ;;		(bencher-run-unit-csv-data bench)))
+    ;;(setf (bencher-run-unit-csv-data bench)
+    ;;	  (cons (cons "Time" curr-time)
+    ;;		(bencher-run-unit-csv-data bench)))		
+
     (setf (bencher-run-unit-csv-data bench)
 	  (cons (cons "Name"  (bencher-run-unit-name bench)) ;; dotted pair
 		(bencher-run-unit-csv-data bench)))
-	  
+
+    ;; Run the pre-benchmark information harvesters
+    (setf (bencher-run-unit-csv-data bench)
+		       (append (bencher-run-information-harvesters bencher-pre-information-harvester-list)
+			       (bencher-run-unit-csv-data bench)))
+		 
     (set-buffer buf)
     (bencher-message (format "Running benchmark: %s" (bencher-run-unit-name bench)))
     (let ((proc (make-process :name (bencher-run-unit-name bench)
@@ -426,6 +480,11 @@
 		 ;; Add collected csv data to the run-unit (dont know why yet...) 
 		 (setf (bencher-run-unit-csv-data-tags bench) collected-csv-data)
 
+		 ;; Run the post-benchmark information harvesters
+		 (setf (bencher-run-unit-csv-data bench)
+		       (append (bencher-run-information-harvesters bencher-post-information-harvester-list)
+			       (bencher-run-unit-csv-data bench)))
+		 
 		 ;; output both "generated" CSV and collected CSV to buffer
 		 (bencher-output-csv-data bench)
 
