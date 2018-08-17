@@ -72,7 +72,8 @@ of each benchmark to the Messages buffer.
 
 And information harvester is a function that returns a key-value pair when given
 the argument nil. If the argument to the harvester is t it should return its key.
-All harvesters are run for each benchmark run. 
+All harvesters are run for each benchmark run. The key-value pairs returned by harvesters
+are added to the CSV output (and passed to whatever data processing plugins there are).
 
 pre- and post-harvesters are added to the following lists:
 ```
