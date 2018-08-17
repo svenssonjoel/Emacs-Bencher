@@ -122,7 +122,8 @@ sleep, 0, 1, 1.00, 0.00, 0.00, 0, 2018-08-12, 08-13-04
 
 # TODO
   * Learn to code LISP.
+  * BUG: Reset does not seem to "reset" enough after an aborted ongoing benching sessions (by reload of file)
   * Add error checking to many places. 
   * Log output buffers.
   * Makefile projects and compile-time argument support.
-  * Editing mode for .bench files (with run-benchmark-closeset-to-cursor function and run-all-benchmarks function).
+  * Editing mode for .bench files (with run-benchmark-closest-to-cursor function and run-all-benchmarks function).
