@@ -68,6 +68,30 @@ of each benchmark to the Messages buffer.
  	     bencher-data-processing-plugin-list))
 ```
 
+# Extensible using pre- and post-benchmark "information harvesters"
+
+And information harvester is a function that returns a key-value pair when given
+the argument nil. If the argument to the harvester is t it should return its key.
+All harvesters are run for each benchmark run. 
+
+pre- and post-harvesters are added to the following lists:
+```
+(defvar bencher-pre-information-harvester-list '())
+(defvar bencher-post-information-harvester-list '())
+```
+
+Example harvester that grabs machine name:
+```
+(defun bencher-uname-n-information-harvester (just-header)
+  (let ((key "Node"))
+    (if just-header
+	key
+      (with-temp-buffer
+	(call-process "uname" 'nil (current-buffer) 'nil "-n")
+	(cons key
+	      (bencher-newline-to-space (buffer-string)))))))
+``` 
+
 
 # Example benchmark and csv output
 

@@ -179,6 +179,10 @@
       (replace-match with nil t))
     (buffer-string)))
 
+(defun bencher-newline-to-space (str)
+  "Turns all occurences of newline into space in str"
+  (replace-regexp-in-string "\n$" " " str))
+
 
 (defun bencher-read-expressions-from-string (str)
   "Read a number of (all) expressions from a string."
@@ -296,7 +300,7 @@
 	     (key-tag-assoc (assoc key tags)))
 	(if (member key tags)
 	    (progn
-	      (bencher-message (format "starting a tag parse %s" key-val))
+	      (bencher-message (format "Parsing tag: %s" key-val))
 	      (bencher-read-tag-values (cdr data) tags  (cons (cons key val) csv-accum)))
 	  (bencher-read-tag-values (cdr data) tags csv-accum)))
     csv-accum))
@@ -395,12 +399,30 @@
       (let ((date (format-time-string "%Y-%m-%d")))
 	(cons key date)))))
 
+(defun bencher-uname-n-information-harvester (just-header)
+  (let ((key "Node"))
+    (if just-header
+	key
+      (with-temp-buffer
+	(call-process "uname" 'nil (current-buffer) 'nil "-n")
+	(cons key
+	      (bencher-newline-to-space (buffer-string)))))))
+
+(defun bencher-uname-m-information-harvester (just-header)
+  (let ((key "Arch"))
+    (if just-header
+	key
+      (with-temp-buffer
+	(call-process "uname" 'nil (current-buffer) 'nil "-m")
+	(cons key
+	      (bencher-newline-to-space (buffer-string)))))))
+
 (setq bencher-pre-information-harvester-list
-      (append (list #'bencher-date-information-harvester
+      (append (list #'bencher-uname-m-information-harvester
+	            #'bencher-uname-n-information-harvester
+	            #'bencher-date-information-harvester
 		    #'bencher-time-information-harvester)
 	    bencher-pre-information-harvester-list))
-
-
 
 ;; ------------------------------------------------------------
 ;; Do the running of benchmarks 
@@ -476,7 +498,7 @@
 					  (append (bencher-run-unit-tags bench)
 						  bencher-time-tags))))
 		 (bencher-message (format "Benchmark finished! %s" buf))
-		 (bencher-message (format "collected data: %s" collected-csv-data))
+		 ;;(bencher-message (format "collected data: %s" collected-csv-data))
 		 ;; Add collected csv data to the run-unit (dont know why yet...) 
 		 (setf (bencher-run-unit-csv-data-tags bench) collected-csv-data)
 
