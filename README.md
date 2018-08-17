@@ -76,8 +76,8 @@ All harvesters are run for each benchmark run.
 
 pre- and post-harvesters are added to the following lists:
 ```
-(defvar bencher-pre-information-harvester-list '())
-(defvar bencher-post-information-harvester-list '())
+bencher-pre-information-harvester-list
+bencher-post-information-harvester-list
 ```
 
 Example harvester that grabs machine name:
