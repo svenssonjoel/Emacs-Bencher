@@ -77,8 +77,6 @@
 ;; The functions should respond to the arguments 't and 'nil, if 't it should return only a string containing the key (for csv-header generations purposes)
 ;; All functions in the list are executed after running each benchmark and the output key-value pairs are
 ;; added to the CSV line for the current run.
-;; TODO: Find out where it is best to go through this list and run with arg 't.
-;; TODO: Add code that runs all functions with arg 'nil directly after finishing the benchmark.
 (defvar bencher-pre-information-harvester-list '())
 (defvar bencher-post-information-harvester-list '())
 
@@ -511,8 +509,6 @@
 		 (bencher-output-csv-data bench)
 
 		 ;; Let all the data processing plugins handle the data as well.
-		 ;; TODO: The CSV output above should be an example of this
-		 ;;       kind of plugin
 		 (bencher-run-data-processing-plugins
 		  bench
 		  bencher-data-processing-plugin-list)
