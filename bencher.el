@@ -284,7 +284,7 @@
 	(bencher-do-substitutions strs-new (cdr var-vals))))))
 
 (defun bencher-parse-buffer-for-tags (buf tags)
-  "Look for occurances of tags in buffer."
+  "Look for occurrences of tags in buffer."
   (let ((buffer-strs
 	 (with-current-buffer buf (split-string (buffer-string) "\n" t))))
     (bencher-read-tag-values buffer-strs tags () )))
@@ -461,15 +461,6 @@
 	  (append (bencher-run-unit-csv-header bench)
 		  (bencher-generate-information-harvester-csv-header)))
 		  
-    ;; Add information to accumulated CSV data
-    ;; TODO: Turn this into a function
-    ;;(setf (bencher-run-unit-csv-data bench) 
-    ;;	  (cons (cons "Date" curr-date)
-    ;;		(bencher-run-unit-csv-data bench)))
-    ;;(setf (bencher-run-unit-csv-data bench)
-    ;;	  (cons (cons "Time" curr-time)
-    ;;		(bencher-run-unit-csv-data bench)))		
-
     (setf (bencher-run-unit-csv-data bench)
 	  (cons (cons "Name"  (bencher-run-unit-name bench)) ;; dotted pair
 		(bencher-run-unit-csv-data bench)))
@@ -481,16 +472,19 @@
 		 
     (set-buffer buf)
     (bencher-message (format "Running benchmark: %s" (bencher-run-unit-name bench)))
-    (let ((proc (make-process :name (bencher-run-unit-name bench)
-			      :command (append bencher-time-cmd (bencher-run-unit-exec-cmd bench))
-			      :buffer buf)))
-      (set-process-sentinel
-       proc
-       (lexical-let ((buf buf)
-		     (bench bench)) ;
-	 (lambda (process signal)
-	   (cond
-	    ((equal signal "finished\n")
+
+    (with-current-buffer buf
+      (make-local-variable 'process-environment) ; Prepare for setting run-unit specific env
+      (let ((proc (make-process :name (bencher-run-unit-name bench)
+				:command (append bencher-time-cmd (bencher-run-unit-exec-cmd bench))
+				:buffer buf)))
+	(set-process-sentinel
+	 proc
+	 (lexical-let ((buf buf)
+		       (bench bench)) ;
+	   (lambda (process signal)
+	     (cond
+	      ((equal signal "finished\n")
 	       (let ((collected-csv-data (bencher-parse-buffer-for-tags
 					  buf
 					  (append (bencher-run-unit-tags bench)
@@ -499,7 +493,7 @@
 		 ;;(bencher-message (format "collected data: %s" collected-csv-data))
 		 ;; Add collected csv data to the run-unit (dont know why yet...) 
 		 (setf (bencher-run-unit-csv-data-tags bench) collected-csv-data)
-
+		 
 		 ;; Run the post-benchmark information harvesters
 		 (setf (bencher-run-unit-csv-data bench)
 		       (append (bencher-run-information-harvesters bencher-post-information-harvester-list)
@@ -519,11 +513,11 @@
 		 ;; Destroy benchmark run output buffer.
 		 ;; Todo: Maybe add storing of the buffer to a log file
 		 (kill-buffer buf)))
-	    ;; Capture all failure cases.
-	    ;; TODO: discriminate between them. 
-	    (t (bencher-message "Benchmark failed!")
-	       (setq bencher-running-benchmark nil)
-	       (kill-buffer buf)))))))))
+	      ;; Capture all failure cases.
+	      ;; TODO: discriminate between them. 
+	      (t (bencher-message "Benchmark failed!")
+		 (setq bencher-running-benchmark nil)
+		 (kill-buffer buf))))))))))
   
 ;; TODO: Change this into some kind of incremental processing
 ;;       of the buffer containing the .bench file.
